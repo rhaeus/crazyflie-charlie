@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<launch>
+
+ <node pkg="tf"
+        type="static_transform_publisher"
+        name="map_odom_broadcaster"
+        args="0 0 0 0 0 0 map cf1/odom 100" />
+
+  <node pkg="tf" 
+        type="static_transform_publisher" 
+        name="base_link_camera_link_broadcaster" 
+        args="0.01 0 0.02 -1.5708 0 -1.5708 cf1/base_link camera_link 100" />
+
+  <node 
+        name="move_drone" pkg="flight_camp" type="move_drone.py" output="screen" 
+        args="/home/ramona/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/fc2.world.json" />
+
+</launch>
