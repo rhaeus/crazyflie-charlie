@@ -1,0 +1,4 @@
+<launch>
+ <node pkg="rosbag" type="record" name="rosbag_record"
+       args="record -o /home/ramona/bags/bag -a -x '/aruco/debug(.*)|/aruco/result/(.*)|/cf1/camera/image_color/(.*)|/cf1/camera/image_mono(.*)|/cf1/camera/image_color(.*)|/cf1/camera/image_raw/(.*)|/cf1/camera/image_rect(.*)'"/>   
+</launch>
