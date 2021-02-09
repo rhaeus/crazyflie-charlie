@@ -93,18 +93,6 @@ def publish_cmd(goal):
     cmd.yaw = math.degrees(yaw)
 
     pub_cmd.publish(cmd)
-
-def publish_setpoint_poses():
-    posearray = PoseArray()
-    posearray.header.stamp = rospy.Time.now()
-    posearray.header.frame_id = 'map'
-    
-
-    global set_points
-    for point in set_points:
-        posearray.poses.append(point.pose)
-
-    pub_setpoints.publish(posearray)
     
 
 def pose_stamped_from_marker(m):
@@ -140,7 +128,6 @@ def transform_from_marker(m):
 rospy.init_node('move_drone')
 
 pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
-# pub_setpoints  = rospy.Publisher('/setpoint_poses', PoseArray, queue_size=2)
 sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, pose_callback)
 
 
@@ -148,32 +135,26 @@ tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
 
-
-
 def main(argv=sys.argv):
     # Let ROS filter through the arguments
     args = rospy.myargv(argv=argv)
 
-    # Load world JSON
+    # Load setpoints from json file that is given as argument
     with open(args[1], 'rb') as f:
         points = json.load(f)
 
-    # Create a transform for each marker
+    # create a pose stamped for each setpoint and store in list   
     global set_points
     set_points = [pose_stamped_from_marker(m) for m in points['markers']]
 
+    # Create a transform for each setpoint and publish it as tf
     transforms = [transform_from_marker(m) for m in points['markers']]
-
     broadcaster = tf2_ros.StaticTransformBroadcaster()
     broadcaster.sendTransform(transforms)
 
     global set_point_count
     set_point_count = len(set_points)
 
-    # publish_setpoint_poses()
-
-
-    # rospy.loginfo(set_points)
     rospy.spin()
 
 if __name__ == "__main__":
