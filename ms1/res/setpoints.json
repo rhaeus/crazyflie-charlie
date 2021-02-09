@@ -1,9 +1,0 @@
-{
-  "markers": [
-    {"id": 1, "pose": {"position": [ 0.00, 0.00, 0.40], "orientation": [0.0,  0.0,    0.0]}},
-    {"id": 2, "pose": {"position": [ 0.70, 0.00, 0.40], "orientation": [0.0,  0.0,   -90.0]}},
-    {"id": 3, "pose": {"position": [ 0.70, -0.70, 0.40], "orientation": [0.0,  0.0,  180.0]}},
-    {"id": 4, "pose": {"position": [ 0.00, -0.70, 0.40], "orientation": [0.0,  0.0,    90.0]}}
-  ]
-
-}

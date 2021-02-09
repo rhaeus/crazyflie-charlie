@@ -27,7 +27,7 @@
 
       <node 
             name="move_drone" pkg="ms1" type="move_drone.py" output="screen" 
-            args="/home/ramona/dd2419_ws/src/ms1/res/setpoints2.json" />
+            args="/home/ramona/dd2419_ws/src/ms1/res/setpoints_ramona.json" />
         
 
 </launch>
