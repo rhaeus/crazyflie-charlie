@@ -1,0 +1,4 @@
+[submodule "perception/dd2419_detector_baseline"]
+	path = perception/dd2419_detector_baseline
+	url = https://github.com/rhaeus/dd2419_detector_baseline.git
+	branch = main
