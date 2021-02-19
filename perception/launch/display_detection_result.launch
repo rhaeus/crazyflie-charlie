@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+
+      <node pkg="perception" type="display_detection_result.py" name="display_detection_result">
+      <param name="annotation_path" value="$(find perception)/dd2419_detector_baseline/dd2419_coco/annotations/training.json"/>  
+      </node>
+        
+
+</launch>
