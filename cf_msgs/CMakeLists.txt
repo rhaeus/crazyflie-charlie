@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
   sensor_msgs
+  geometry_msgs
   rospy
 )
 
@@ -52,6 +53,8 @@ add_message_files(
   FILES
   SignLabel.msg
   DetectionResult.msg
+  SignMarker.msg
+  SignMarkerArray.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -73,6 +76,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
   sensor_msgs
+  geometry_msgs
 )
 
 ################################################
