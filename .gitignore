@@ -3,3 +3,4 @@
 .vscode/
 course_packages/
 own_packages/
+*.pyc

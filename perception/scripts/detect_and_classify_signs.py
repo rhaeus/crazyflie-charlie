@@ -11,17 +11,23 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from PIL import Image as PIL_Image
 
+from cf_msgs.msg import DetectionResult
+
 from dd2419_detector_baseline.image_processor import ImageProcessor
 
-class ProcessCameraImage:
+import convert_msgs
+
+
+class DetectAndClassifySigns:
 
   def __init__(self):
     # get parameters from parameter server
     model_path = rospy.get_param('~model_path')
     ann_path = rospy.get_param('~annotation_path')
+    self.confidence_thres = rospy.get_param('~confidence_thres', 0.5)
 
     self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback)
-    self.image_pub = rospy.Publisher("/cf1/sign_detection/image", Image, queue_size=2)
+    self.result_pub = rospy.Publisher("/cf1/sign_detection/result", DetectionResult, queue_size=2)
 
     self.bridge = CvBridge()
     self.image_processor = ImageProcessor(model_path, ann_path)
@@ -41,30 +47,28 @@ class ProcessCameraImage:
     pil_image = PIL_Image.fromarray(color_coverted)
 
     # use detector to detect and classify
-    bbs = self.image_processor.detect_and_classify(pil_image, 0.5)
+    bbs = self.image_processor.detect_and_classify(pil_image, self.confidence_thres)
 
-    pil_image = self.image_processor.overlay_image(pil_image, bbs[0])
+    # print("hello")
 
-    #
-    # use numpy to convert the pil_image into a numpy array
-    numpy_image=np.array(pil_image)  
+    
+    labels = []
 
-    # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that 
-    # the color is converted from RGB to BGR format
-    opencv_image = cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) 
+    for bb in bbs[0]:
+        labels.append(convert_msgs.dict_entry_to_sign_label_msg(bb))
 
-   
+    result = DetectionResult()
+    result.image = data
+    result.labels = labels
 
-    # Publish the image
-    try:
-      self.image_pub.publish(self.bridge.cv2_to_imgmsg(opencv_image, "bgr8"))
-    except CvBridgeError as e:
-      print(e)
+    # Publish the result
+    self.result_pub.publish(result)
+
 
 def main(args):
-  rospy.init_node('process_camera_image', anonymous=True)
+  rospy.init_node('detect_and_classify_signs', anonymous=True)
 
-  proc = ProcessCameraImage()
+  proc = DetectAndClassifySigns()
 
   print("running...")
   try:
