@@ -1,0 +1,95 @@
+{
+    "sign_info": [
+        {
+            "id": 0,
+            "name": "no_bicycle",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 1,
+            "name": "airport",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 2,
+            "name": "dangerous_left",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 3,
+            "name": "dangerous_right",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 4,
+            "name": "follow_left",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 5,
+            "name": "follow_right",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 6,
+            "name": "junction",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 7,
+            "name": "no_heavy_truck",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 8,
+            "name": "no_parking",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 9,
+            "name": "no_stopping_and_parking",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 10,
+            "name": "residential",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 11,
+            "name": "narrows_from_left",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 12,
+            "name": "narrows_from_right",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 13,
+            "name": "roundabout",
+            "real_width": 19,
+            "real_height": 19
+          },
+          {
+            "id": 14,
+            "name": "stop",
+            "real_width": 19,
+            "real_height": 19
+          }
+
+    ]
+}
