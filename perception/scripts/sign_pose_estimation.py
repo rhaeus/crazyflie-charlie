@@ -7,14 +7,18 @@ import rospy
 import cv2 as cv
 import numpy as np
 from std_msgs.msg import String
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 import os
 import json
+import math
 
 import convert_msgs
 
 from cf_msgs.msg import DetectionResult, SignMarker, SignMarkerArray
+
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from geometry_msgs.msg import Pose
 
 class SignPoseEstimation:
 
@@ -22,13 +26,24 @@ class SignPoseEstimation:
         self.reference_sign_path = rospy.get_param('~reference_sign_path')
 
         self.result_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback)
-        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", Image, queue_size=2)
+        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", SignMarkerArray, queue_size=2)
 
         self.image_pub = rospy.Publisher("/cf1/sign_detection/feature_matches", Image, queue_size=2)
+
+        self.camera_info_sub = rospy.Subscriber("/cf1/camera/camera_info", CameraInfo, self.camera_info_callback)
+
+        self.distortion = []
+        self.camera_matrix = []
+
         self.bridge = CvBridge()
 
         # calculate features for all signs
         self.load_reference_features()
+
+    def camera_info_callback(self, data):
+        self.distortion = data.D
+        m = np.array(data.K)
+        self.camera_matrix = np.reshape(m, (3,3))
 
     def load_reference_features(self):
         # reads info in res/reference_signs/info.json
@@ -62,6 +77,7 @@ class SignPoseEstimation:
             info["kp"] = kp
             info["des"] = des
             info["image"] = image
+            info["object_points"] = self.keypoints_to_object_points(kp, info)
 
 
     def compute_mask(self, image, bbx):
@@ -92,6 +108,36 @@ class SignPoseEstimation:
 
         return (kp, des)
 
+    def keypoints_to_object_points(self, kps, info):
+        object_points = []
+        real_width = float(info["real_width"])
+        real_height = float(info["real_height"])
+        image_width = float(info["width"])
+        image_height = float(info["height"])
+
+        for point in kps:
+            px = point.pt[0]
+            py = point.pt[1]
+
+            ox = px/image_width*real_width - real_width/2.0
+            oy = py/image_height*real_height - real_height/2.0
+            oz = 0
+
+            object_points.append((ox, oy, oz))
+
+        return np.array(object_points)
+
+    def keypoints_to_image_points(self, kps):
+        image_points = []
+
+        for point in kps:
+            px = point.pt[0]
+            py = point.pt[1]
+
+            image_points.append((px, py))
+
+        return np.array(image_points)
+
 
     def callback(self, detection_result):
         image = detection_result.image
@@ -107,6 +153,7 @@ class SignPoseEstimation:
 
         sign_marker_array = SignMarkerArray()
         sign_marker_array.header = image.header
+        sign_marker_array.header.frame_id = 'camera_link'
 
         for bb in bbs:
             # compute mask
@@ -134,23 +181,46 @@ class SignPoseEstimation:
                 print(e)
 
             # calculate object points and image points
+            object_points = ref["object_points"]
+            image_points = self.keypoints_to_image_points(kp)
+
+            # we need at least 4 matches
+            if len(object_points) < 4 or len(image_points) < 4:
+                rospy.loginfo("too few matches")
+                return
 
             # use cv2.solvePnP for pose estimation
+            (_, rotation_vector, translation_vector) = cv.solvePnP(
+                object_points[:4], image_points[:4], self.camera_matrix, self.distortion)
+
+            # create pose
+            p = Pose()
+
+            p.position.x = translation_vector[0]
+            p.position.y = translation_vector[1]
+            p.position.z = translation_vector[2]
+
+            (p.orientation.x,
+            p.orientation.y,
+            p.orientation.z,
+            p.orientation.w) = quaternion_from_euler(math.radians(rotation_vector[0]),
+                                                            math.radians(rotation_vector[1]),
+                                                            math.radians(rotation_vector[2]))
 
             # create SignMarker 
-            # sign_marker = SignMarker()
-            # sign_marker.header = image.header
-            # sign_marker.id = bb["category"]
+            sign_marker = SignMarker()
+            sign_marker.header = image.header
+            sign_marker.id = bb["category"]
 
-            # sign_marker.pose.pose = 
+            sign_marker.pose.pose = p
             # sign_marker.pose.covariance = 
 
             # add SignMarker to SignMarkerArray
-            # sign_marker_array.append(sign_marker)
+            sign_marker_array.markers.append(sign_marker)
 
 
         # publish SignMArkerArray
-        # self.pose_pub.publish(sign_marker_array)
+        self.pose_pub.publish(sign_marker_array)
 
     
 
