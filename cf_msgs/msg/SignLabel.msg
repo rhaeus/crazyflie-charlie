@@ -1,0 +1,5 @@
+int32 bbx_top_left_x
+int32 bbx_top_left_y
+int32 bbx_width
+int32 bbx_height
+int32 category_id
