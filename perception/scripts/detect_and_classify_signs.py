@@ -26,8 +26,8 @@ class DetectAndClassifySigns:
     ann_path = rospy.get_param('~annotation_path')
     self.confidence_thres = rospy.get_param('~confidence_thres', 0.5)
 
-    self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback)
-    self.result_pub = rospy.Publisher("/cf1/sign_detection/result", DetectionResult, queue_size=2)
+    self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback, queue_size = 1, buff_size=2**24)
+    self.result_pub = rospy.Publisher("/cf1/sign_detection/result", DetectionResult, queue_size=10)
 
     self.bridge = CvBridge()
     self.image_processor = ImageProcessor(model_path, ann_path)
