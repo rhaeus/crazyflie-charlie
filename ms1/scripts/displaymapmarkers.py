@@ -52,14 +52,12 @@ def main(argv=sys.argv):
 
     object_transforms = [transform_from_object(m) for m in world['roadsigns']]
 
-   
-
+    transforms = marker_transforms + object_transforms
     # Publish these transforms statically forever
     
     broadcaster = tf2_ros.StaticTransformBroadcaster()
-    broadcaster.sendTransform(marker_transforms)
-    broadcaster.sendTransform(object_transforms)
-    # broadcaster.sendTransform(t)
+    broadcaster.sendTransform(transforms)
+
     rospy.spin()
 
 if __name__ == "__main__":
