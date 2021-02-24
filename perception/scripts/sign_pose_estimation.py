@@ -77,7 +77,7 @@ class SignPoseEstimation:
             info["kp"] = kp
             info["des"] = des
             info["image"] = image
-            info["object_points"] = self.keypoints_to_object_points(kp, info)
+            # info["object_points"] = self.keypoints_to_object_points(kp, info)
 
 
     def compute_mask(self, image, bbx):
@@ -153,7 +153,7 @@ class SignPoseEstimation:
 
         sign_marker_array = SignMarkerArray()
         sign_marker_array.header = image.header
-        sign_marker_array.header.frame_id = 'camera_link'
+        sign_marker_array.header.frame_id = 'cf1/camera_link'
 
         for bb in bbs:
             # compute mask
@@ -181,13 +181,24 @@ class SignPoseEstimation:
                 print(e)
 
             # calculate object points and image points
-            object_points = ref["object_points"]
-            image_points = self.keypoints_to_image_points(kp)
 
             # we need at least 4 matches
-            if len(object_points) < 4 or len(image_points) < 4:
+            if len(matches) < 4:
                 rospy.loginfo("too few matches")
                 return
+
+            object_keypoints = []
+            image_keypoints = []
+
+            # get 4 best matches
+            for i in range(4):
+                match = matches[i]
+                object_keypoints.append(ref["kp"][match.trainIdx])
+                image_keypoints.append(kp[match.queryIdx])
+                
+
+            image_points = self.keypoints_to_image_points(image_keypoints)
+            object_points = self.keypoints_to_object_points(object_keypoints, ref)
 
             # use cv2.solvePnP for pose estimation
             (_, rotation_vector, translation_vector) = cv.solvePnP(
