@@ -24,8 +24,8 @@ class DisplayDetectionResult:
     # model_path = rospy.get_param('~model_path', None)
     ann_path = rospy.get_param('~annotation_path', None)
 
-    self.image_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback)
-    self.image_pub = rospy.Publisher("/cf1/sign_detection/image_overlay", Image, queue_size=2)
+    self.image_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback, queue_size = 1, buff_size=2**24)
+    self.image_pub = rospy.Publisher("/cf1/sign_detection/image_overlay", Image, queue_size=10)
 
     self.bridge = CvBridge()
     self.image_processor = ImageProcessor(None, ann_path)
