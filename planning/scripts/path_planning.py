@@ -7,6 +7,7 @@ from matplotlib import cm, colors
 import random
 
 from numpy import linalg
+from numpy.lib.shape_base import _apply_over_axes_dispatcher
 from numpy.linalg.linalg import norm
 
 
@@ -60,6 +61,10 @@ class pathPlanning():
         self.xMin, self.yMin = 0, 0
         self.xMax, self.yMax = len(self.grid[0]) - 1, len(self.grid) - 1
         self.movements = np.array([(1, 0), (0,1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)])
+        self.successNode = None 
+        self.succeded = False 
+        self.path = None
+
 
     def __str__(self):
         return '\n'.join([str(row) for row in self.grid])
@@ -71,72 +76,88 @@ class pathPlanning():
         openList = minHeap()
         openList.insert(startNode)
         closedList = []
-
+        i = 0
         while not openList.isEmpty():
             currentNode = openList.deleteMin()
-            
+        
             for movement in self.movements:
                 successorPosition = currentNode.position + movement
                 if successorPosition[0] < self.xMin or successorPosition[0] > self.xMax or successorPosition[1] < self.yMin or successorPosition[1] > self.yMax:
                     continue
-
-                if self.grid[successorPosition[0]][successorPosition[1]] == 1:
+                print(successorPosition)
+                if self.grid[successorPosition[1]][successorPosition[0]] == 1:
                     continue
                 
                 successorNode = AstarNode(successorPosition, parent=currentNode)
                 if list(successorNode.position) == list(goalNode.position):
-                    print("done")
+                    print("Found a path")
+                    self.succeded = True
+                    self.successNode = successorNode
+                    return 
                 
                 successorNode.g = currentNode.g + np.linalg.norm(movement)
                 successorNode.h = max(abs(goalNode.position[0] - successorNode.position[0]), abs(goalNode.position[1] - successorNode.position[1]))
                 successorNode.f = successorNode.g + successorNode.h 
                 
+
                 inOpenList = openList.checkFor(successorNode.position)
-                if not inOpenList:
-                    print("hej")
-                    #if successorNode.g < inOpenList.g:
-                    #    inOpenList.g = successorNode.g
-                    #    inOpenList.f = inOpenList.g + successorNode.h
-                    #    inOpenList.parent = successorNode.parent
+                if inOpenList:
+                    if inOpenList.f <= successorNode.f:
+                        continue
+
+                closedNode = None
+                for node in closedList:
+                    if list(node.position) == list(successorNode.position):
+                        closedNode = node
+                        break
                 
-                    #for closed in closedList:
-                    #if list(closed.position) == list(successorNode.position):
-                    #    if closed.f > successorNode.f:
-                    #        openList.insert(successorNode)
-                    
-                closedList.append(currentNode)
-                print(openList)
+                if closedNode:
+                    if closedNode.f <= successorNode.f:
+                        continue
 
-                
-
-
-
-                                
-
+                openList.insert(successorNode)
             
+            closedList.append(currentNode)
+        
+        if list(currentNode.position) != list(goalNode.position):
+            print("couldn't find a path")
+            return 
+        
+        print("Found a path")
+        self.succeded = True
+        self.successNode = currentNode
 
+    def extractPath(self):
+        if not self.succeded:
+            print("No valid path")
+            return 
 
+        path = []
+        while self.successNode != None:
+            path.append(self.successNode.position)
+            self.successNode = self.successNode.parent
 
-
+        path.reverse()
+        self.path = path
+        
 def main():
 
 
     data = np.array([[0, 0, 0, 0, 0, 0, 3],
-            [0, 0, 0, 1, 0, 0, 0],
-            [2, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0]])
+                    [0, 0, 0, 1, 0, 0, 0],
+                    [2, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0]])
 
-    #print(data.shape)
-
-
+    
     planning = pathPlanning(data)
     start = np.array((0, 2))
-    #print(type(start))
     goal = np.array((6, 0))
-    #print(start + goal)
-    planning.Astar(start=start, goal=goal)
 
+    planning.Astar(start=start, goal=goal)
+    planning.extractPath()
+
+    print(planning.path)
 
     cmap = colors.ListedColormap(["white", "black", "green", "blue"])
 
@@ -144,8 +165,7 @@ def main():
     plt.imshow(data, cmap=cmap)
     plt.axis('on')
 
-    #plt.plot([-0.5, 6.5], [-0.5, -0.5], 'r', linewidth=2)
-
+    plt.plot([p[0] for p in planning.path], [p[1] for p in planning.path], 'r', linewidth=2)
 
     plt.show()
 
