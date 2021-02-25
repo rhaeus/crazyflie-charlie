@@ -13,6 +13,12 @@ from numpy.linalg.linalg import norm
 
 
 class AstarNode():
+    # Just a node structure
+    # position - some grid in the map
+    # parent - pointer used to build up the optimal path from start to goal 
+    # g - the cost movement cost from start position to self.position 
+    # h - the estimated cost from self.position to goal position
+    # f = h+g 
     def __init__(self, position, parent = None):
         self.position = position
         self.parent = parent
@@ -20,8 +26,12 @@ class AstarNode():
         self.g = 0
         self.h = 0
         self.f = 0
-    
+
+
+
 class minHeap():
+    # Heap structure, inspiration: https://www.geeksforgeeks.org/priority-queue-in-python/ 
+    # some modification to suit the node class 
     def __init__(self):
         self.heap = []
 
@@ -56,6 +66,12 @@ class minHeap():
 
 
 class pathPlanning():
+    # First draft
+    # Things to be added:
+    # - ability to read a json file
+    # - discretize this file into a grid, maybe 2D is enough for MS2
+    # - ROS integration, probably as some kind of service
+    # - Probably a lot of other stuff  
     def __init__(self, grid):
         self.grid = grid
         self.xMin, self.yMin = 0, 0
@@ -76,7 +92,7 @@ class pathPlanning():
         openList = minHeap()
         openList.insert(startNode)
         closedList = []
-        i = 0
+        
         while not openList.isEmpty():
             currentNode = openList.deleteMin()
         
@@ -84,7 +100,7 @@ class pathPlanning():
                 successorPosition = currentNode.position + movement
                 if successorPosition[0] < self.xMin or successorPosition[0] > self.xMax or successorPosition[1] < self.yMin or successorPosition[1] > self.yMax:
                     continue
-                print(successorPosition)
+            
                 if self.grid[successorPosition[1]][successorPosition[0]] == 1:
                     continue
                 
@@ -141,34 +157,28 @@ class pathPlanning():
         self.path = path
         
 def main():
+    # A simple test array easy to modify 
+    data = np.array([[0, 0, 0, 1, 0, 0, 3],
+                     [0, 0, 0, 1, 0, 0, 0],
+                     [2, 0, 0, 1, 0, 0, 0],
+                     [0, 1, 0, 1, 0, 0, 1],
+                     [0, 1, 0, 0, 0, 1, 1]])
 
-
-    data = np.array([[0, 0, 0, 0, 0, 0, 3],
-                    [0, 0, 0, 1, 0, 0, 0],
-                    [2, 0, 0, 1, 0, 0, 0],
-                    [0, 0, 0, 1, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0]])
-
-    
     planning = pathPlanning(data)
+    
+    # Execute A* path planning  
     start = np.array((0, 2))
     goal = np.array((6, 0))
-
     planning.Astar(start=start, goal=goal)
     planning.extractPath()
 
-    print(planning.path)
-
-    cmap = colors.ListedColormap(["white", "black", "green", "blue"])
-
+    #Color map showing start, goal, freespace and obstacles
+    cmap = colors.ListedColormap(["white", "black", "red", "red"])
     plt.figure(figsize=(10,10))
     plt.imshow(data, cmap=cmap)
-    plt.axis('on')
 
-    plt.plot([p[0] for p in planning.path], [p[1] for p in planning.path], 'r', linewidth=2)
-
+    plt.plot([p[0] for p in planning.path], [p[1] for p in planning.path], 'k', linewidth=2)
     plt.show()
-
 
 if __name__ == "__main__":
     main()
