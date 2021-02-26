@@ -2,12 +2,8 @@
 
 <launch>
 
-      <node pkg="perception" type="sign_pose_estimation.py" name="sign_pose_estimation" output="screen">
+      <node pkg="perception" type="sign_pose_estimation_bbx.py" name="sign_pose_estimation_bbx" output="screen">
             <param name="reference_sign_path" value="$(find perception)/res/reference_signs"/>
       </node>
-
-      <node name="display_sign_pose_estimation" pkg="perception" type="display_sign_pose_estimation.py" output="screen">
-      </node>
-        
 
 </launch>

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+
+      <node 
+            name="displaymapmarkers" pkg="drone_launch" type="displaymapmarkers.py" output="screen"
+            args="$(find maps)/ramona.world.json">
+      </node>
+
+</launch>
