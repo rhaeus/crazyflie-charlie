@@ -92,7 +92,7 @@ class pathPlanning():
         openList = minHeap()
         openList.insert(startNode)
         closedList = []
-        
+
         while not openList.isEmpty():
             currentNode = openList.deleteMin()
         
@@ -101,7 +101,7 @@ class pathPlanning():
                 if successorPosition[0] < self.xMin or successorPosition[0] > self.xMax or successorPosition[1] < self.yMin or successorPosition[1] > self.yMax:
                     continue
             
-                if self.grid[successorPosition[1]][successorPosition[0]] == 1:
+                if self.grid[successorPosition[1]][successorPosition[0]] == 1 or self.grid[successorPosition[1]][successorPosition[0]] == 2:
                     continue
                 
                 successorNode = AstarNode(successorPosition, parent=currentNode)
