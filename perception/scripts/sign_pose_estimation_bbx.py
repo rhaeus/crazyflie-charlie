@@ -51,7 +51,7 @@ class SignPoseEstimation:
         # corners of the signs in object coordinates
 
         self.ref_dict = {}
-        info_file = file_path = os.path.join(self.reference_sign_path, 'info.json')
+        info_file = file_path = os.path.join(self.reference_sign_path, 'sign_dimensions.json')
 
         with open(info_file, 'rb') as json_file:
             ref_info = json.load(json_file)
@@ -136,6 +136,7 @@ class SignPoseEstimation:
             # create SignMarker 
             sign_marker = SignMarker()
             sign_marker.header = image.header
+            sign_marker.header.frame_id = 'cf1/camera_link'
             sign_marker.id = bb["category"]
 
             sign_marker.pose.pose = p
