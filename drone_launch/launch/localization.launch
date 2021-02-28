@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="map_name"    default="karl"/>
+    <arg name="config_bag_name"    default="erik"/>
+    <arg name="use_rviz"    default="false"/>
+
+
+
+    <node pkg="localization" type="odom_broadcast.py" name="odom_broadcast" output="screen" args="$(find maps)/$(arg map_name).world.json"> </node>
+    <node pkg = "localization" type = "base_link_pub.py" name = "base_link_pub" output = "screen"></node>
+    <node pkg="display" type="displaymarkers.py" name="displaymarkers" output="screen" args="$(find maps)/$(arg map_name).world.json"> </node>
+    <node pkg="display" type="displayobjects.py" name="displayobjects" output="screen" args="$(find maps)/$(arg map_name).world.json"> </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find drone_launch)/config/rviz/$(arg config_bag_name).rviz" if = "$(arg use_rviz)"/>  
+
+</launch>

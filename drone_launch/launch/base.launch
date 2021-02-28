@@ -6,5 +6,6 @@
       <include file="$(find drone_launch)/launch/display_map_markers.launch" />
 
       <include file="$(find perception)/launch/launch_all_perception.launch" />
-        
+      <include file="$(find drone_launch)/launch/localization.launch"/>
+      
 </launch>
