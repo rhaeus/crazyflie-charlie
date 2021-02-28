@@ -55,9 +55,9 @@ def send_transform_from_marker(m):
 
 
 rospy.init_node('display_sign_pose_estimation')
-sub_marker = rospy.Subscriber('/cf1/sign_detection/pose_estimation', SignMarkerArray, marker_callback)
+sub_marker = rospy.Subscriber('/cf1/sign_detection/pose_estimation', SignMarkerArray, marker_callback, queue_size = 1, buff_size=2**24)
 
-pub_pose_map = rospy.Publisher('/cf1/sign_detection/pose_estimation_map', PoseStamped, queue_size=2)
+pub_pose_map = rospy.Publisher('/cf1/sign_detection/pose_estimation_map', PoseStamped, queue_size = 10)
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
