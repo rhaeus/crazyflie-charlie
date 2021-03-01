@@ -10,6 +10,7 @@ import tf2_ros
 import tf2_geometry_msgs
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import TransformStamped, PoseStamped, Transform
+from std_msgs.msg import Bool
 import tf.transformations 
 
 def marker_callback(msg):
@@ -44,24 +45,6 @@ def mMapMatrix(m):
 
     return T 
 
-"""
-OLD CODE 
-def delRollPitch(T):
-    rot = list(tf.transformations.euler_from_matrix(T))
-    rot[1] = 0
-    rot[2] = 0
-    T_old = T
-    T = tf.transformations.euler_matrix(rot[0], rot[1], rot[2])
-    T[0,3]= T_old[0,3]
-    T[1,3]= T_old[1,3]
-    T[2,3]= T_old[2,3]    
-    print(T)
-    return T 
-
-def delZ(T):
-    T[2,3] = 0
-    return T 
-"""    
 
 def broadcast_odom(m):
     # cam to landmark
@@ -109,6 +92,18 @@ def broadcast_odom(m):
     broadcaster.sendTransform(t)
     rospy.sleep(0.1)
 
+    if tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
+        msg = Bool()
+        msg.data = True
+        pub.publish(msg)
+    else:
+        msg = Bool()
+        msg.data = False
+        pub.publish(msg)
+    
+
+
+
 def trans_to_map(m):
     aruco_marker = PoseStamped()
     aruco_marker.header = m.header
@@ -129,13 +124,13 @@ def trans_to_map(m):
 
 def main(argv=sys.argv): 
     rospy.init_node('marker_detection')
-    global tf_buf, broadcaster, world
+    global tf_buf, broadcaster, world, pub
 
     path = str(argv[1])
     with open(path, 'rb') as f:
         world = json.load(f)  
 
-
+    pub = rospy.Publisher('is_localized', Bool, queue_size=10)
     sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 
     tf_buf = tf2_ros.Buffer() 

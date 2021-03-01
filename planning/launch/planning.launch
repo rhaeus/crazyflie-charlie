@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+      <arg name="map_name" default="karl"/>
+      <arg name="grid_size" default="10.0"/>
+
+      <node pkg="planning" type="path_server.py" name="path_server" output="screen">
+      <param name="map_file_path" value="$(find maps)/$(arg map_name).world.json"/> 
+      <param name="grid_size" value="$(arg grid_size)"/> 
+
+      </node>
+</launch>

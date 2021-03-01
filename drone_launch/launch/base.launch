@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 
 <launch>
-      <arg name="map_name"          default="karl"/>
+      <arg name="map_name"          default="ramona"/>
       <arg name="rviz_config_name"  default="erik"/>
       <arg name="use_rviz"          default="true"/>
+      <arg name="grid_size"         default="10.0"/>
 
       <!-- publish base_link to camera_link static transform -->
       <node pkg="tf2_ros" 
@@ -23,5 +24,13 @@
       <include file="$(find localization)/launch/localization.launch">
       <arg name="map_name" value="$(arg map_name)"/>
       </include>
+
+      <include file="$(find planning)/launch/planning.launch">
+      <arg name="map_name" value="$(arg map_name)"/>
+      <arg name="grid_size" value="$(arg grid_size)"/>
+      </include>
       
+
+      <include file="$(find brain)/launch/brain.launch" />
+
 </launch>
