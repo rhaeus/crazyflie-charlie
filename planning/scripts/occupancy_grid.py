@@ -4,6 +4,8 @@ from __future__ import print_function
 import sys
 import json 
 import math
+
+from numpy.core.defchararray import array
 sys.path.append('/home/karl/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/') 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -171,6 +173,11 @@ def main(argv=sys.argv):
     planning = pathPlanning(OG.grid)
     planning.Astar(np.array(start), np.array(goal))
     planning.extractPath()
+    print(planning.path)
+
+    #arr = planning.extractPath()
+    #for setpoint in arr: 
+        
 
 
     cmap = colors.ListedColormap(["white", "blue"])
