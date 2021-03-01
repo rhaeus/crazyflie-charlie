@@ -18,7 +18,6 @@ def marker_callback(msg):
         #rospy.loginfo(marker)
         broadcast_odom(marker)
         #trans_to_map(marker)
-        #broadcast_odom(msg.markers[0])
 
 def poseToMatrix(tran, quat):
     T = tf.transformations.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
@@ -90,7 +89,6 @@ def broadcast_odom(m):
     t.transform.rotation.w = quat[3]/norm
 
     broadcaster.sendTransform(t)
-    rospy.sleep(0.1)
 
     if tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
         msg = Bool()
