@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-      <arg name="map_name"          default="karl"/>
+      <arg name="map_name"          default="ramona"/>
       <arg name="rviz_config_name"  default="erik"/>
       <arg name="use_rviz"          default="true"/>
       <arg name="grid_size"         default="10.0"/>
@@ -30,4 +30,7 @@
       <arg name="grid_size" value="$(arg grid_size)"/>
       </include>
       
+
+      <include file="$(find brain)/launch/brain.launch" />
+
 </launch>
