@@ -17,6 +17,7 @@ import tf2_ros
 import tf2_geometry_msgs
 
 from cf_msgs.srv import DronePath
+from nav_msgs.msg import Path
 
 set_points = None
 set_point_index = 0
@@ -36,7 +37,7 @@ def move_callback(msg):
     if not tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp):
     # if not tf_buf.can_transform('map', msg.header.frame_id, rospy.Time(0)):
         # rospy.logwarn_throttle(5.0, 'No transform from %s to map' % msg.header.frame_id)
-        rospy.logwarn('No transform from %s to map' % msg.header.frame_id)
+        rospy.logwarn('[move_callback] No transform from %s to map' % msg.header.frame_id)
         return
 
     pose_map = tf_buf.transform(msg, 'map')
@@ -72,12 +73,15 @@ def move_callback(msg):
 def publish_cmd(goal):
     # Need to tell TF that the goal was just generated
     goal.header.stamp = rospy.Time.now()
+    # goal.header.stamp = rospy.Time(0)
 
     # goal is in map frame
     # drone expects goal pose in odom frame
-    if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp):
-        rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
+    if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(5)):
+        rospy.logwarn('[move_callback] No transform from %s to cf1/odom' % msg.header.frame_id)
         return
+        # rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
+        # return
 
     goal_odom = tf_buf.transform(goal, 'cf1/odom')
 
@@ -144,7 +148,7 @@ pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 
 sub_flag = rospy.Subscriber("is_localized", Bool, flagcallback)
 
-
+path_pub = rospy.Publisher('/path_pub', Path, queue_size=10)
 
 
 tf_buf   = tf2_ros.Buffer()
@@ -153,7 +157,7 @@ tf_lstn  = tf2_ros.TransformListener(tf_buf)
 def trans2Map(msg):
     # marker pose is in frame camera_link
     if not tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp, rospy.Duration(1)):
-        rospy.logwarn('No transform from %s to map', msg.header.frame_id)
+        rospy.logwarn('[trans2Map] No transform from %s to map', msg.header.frame_id)
         return
     # transform = tf_buf.lookup_transform('map',msg.header.frame_id,msg.header.stamp,rospy.Duration(1))
     # mapPose = tf2_geometry_msgs.do_transform_pose(msg,transform)
@@ -162,6 +166,7 @@ def trans2Map(msg):
 
 def main(argv=sys.argv):
     state = 0
+    path = []
 
     while not rospy.is_shutdown():
         
@@ -179,8 +184,8 @@ def main(argv=sys.argv):
             # start = trans2Map(drone_pose)
             start = PoseStamped()
             start.header.frame_id = 'map'
-            start.pose.position.x = 0
-            start.pose.position.y = 0
+            start.pose.position.x = 0.5
+            start.pose.position.y = 0.5
             start.pose.position.z = 0
             (start.pose.orientation.x,
             start.pose.orientation.y,
@@ -204,10 +209,12 @@ def main(argv=sys.argv):
             rospy.wait_for_service('drone_path')
             planning_srv = rospy.ServiceProxy('drone_path', DronePath)
             path = planning_srv(start, goal)
-            set_points = path
+            path = path.path
+            set_points = path.poses
+            print("setpoints: ", set_points)
             set_point_count = len(set_points)
 
-            state = 3
+            state = 4
 
         elif state == 3: # get ready to move to points
             print("get ready to move to points")
@@ -216,6 +223,7 @@ def main(argv=sys.argv):
 
         elif state == 4: # it should move
             state = 4 
+            path_pub.publish(path)
 
     
     # is_localized = False
