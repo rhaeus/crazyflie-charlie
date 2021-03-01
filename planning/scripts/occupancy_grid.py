@@ -4,6 +4,8 @@ from __future__ import print_function
 import sys
 import json 
 import math
+
+from numpy.core.defchararray import array
 sys.path.append('/home/karl/dd2419_ws/src/course_packages/dd2419_resources/worlds_json/') 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -117,7 +119,7 @@ class OccupancyGrid():
                             self.grid[i, startX+1] = 2
                 else:
                     for i in range(endY, startY):
-                        self.self.grid[i, startX] = 1
+                        self.grid[i, startX] = 1
                         #self.grid[i-1, startX] = 2
                         #self.grid[i+1, startX] = 2
                         #self.grid[i, startX-1] = 2
@@ -171,6 +173,11 @@ def main(argv=sys.argv):
     planning = pathPlanning(OG.grid)
     planning.Astar(np.array(start), np.array(goal))
     planning.extractPath()
+    print(planning.path)
+
+    #arr = planning.extractPath()
+    #for setpoint in arr: 
+        
 
 
     cmap = colors.ListedColormap(["white", "blue"])
