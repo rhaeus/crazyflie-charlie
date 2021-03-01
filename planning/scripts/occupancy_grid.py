@@ -144,16 +144,19 @@ class OccupancyGrid():
             x, y = int(gate['position'][0]), int(gate['position'][1])
 
             if y == 0:
-                scaledX = x*self.gridSize - self.xLim[0]
+                scaledX = x*int(self.gridSize) - self.xLim[0]
                 scaledY = - self.yLim[0]
-                self.grid[scaledY - self.gridSize: scaledY + self.gridSize, \
+                #print(scaledX, scaledY)
+                self.grid[scaledY - int(self.gridSize): scaledY + int(self.gridSize), \
                 scaledX - 1: scaledX + 1] = 1
 
             if x == 0:
                 scaledX =  - self.xLim[0]
-                scaledY = y*self.gridSize - self.yLim[0]
+                scaledY = y*int(self.gridSize) - self.yLim[0]
+                #print(scaledX, scaledY)
+
                 self.grid[scaledY - 1: scaledY + 1, \
-                scaledX - self.gridSize: scaledX + self.gridSize] = 1
+                scaledX - int(self.gridSize): scaledX + int(self.gridSize)] = 1
 
 
 def main(argv=sys.argv):
