@@ -8,6 +8,7 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import PoseStamped
 import tf.transformations 
 import math
+from cf_msgs.srv import DronePath
 
 def flagcallback(msg):
     global flag
@@ -20,7 +21,7 @@ def posecallback(msg):
 
 
 def trans2Map(msg):
-    transform = tf_buf.lookup_transform('map',msg.header.frame_id,rospy.Time(0),rospy.Duration(1))
+    transform = tf_buf.lookup_transform('map',msg.header.frame_id,msg.header.stamp,rospy.Duration(1))
     mapPose = tf2_geometry_msgs.do_transform_pose(msg,transform)
     return mapPose
 
@@ -57,6 +58,7 @@ def diff(pose):
     cfy = cfpose.pose.posisiton.y
     cfz = cfpose.pose.posisiton.z
     cfangles = tf.transformations.euler_from_quaternion(cfpose.pose.orientation)
+    # calc distance to goal pose
     r = math.sqrt((x-cfx)**2+(y-cfy)**2+(z-cfz)**2+(angles[0]-cfangles[0])**2)
     return r
 
@@ -86,8 +88,8 @@ def main():
 
     # start planning service
     print("Waiting for planning service")
-    rospy.wait_for_service('DronePath')
-    planning = rospy.ServiceProxy('DronePath',DronePath)
+    rospy.wait_for_service('drone_path')
+    planning = rospy.ServiceProxy('drone_path', DronePath)
 
     # goal coordinates in map frame
     #lst=([x,y,z,yaw][x,y,z,yaw][....])
@@ -102,13 +104,14 @@ def main():
     rate = rospy.Rate(20)
     print("Starting states")
     while flag:
-
-        if state == 0:
+        
+        if state <= 4:
+            r = 1
             # transform cf pose to map frame, return PoseStamped msg
             start = trans2Map(cfpose)
             # get goal pose in map frame, return PoseStamed msg
             goal = getGoal(state) 
-            # call service for list of pose stamped msg between start and goal
+            # call planning service for list of pose stamped msg between start and goal
             poses = planning(start, goal)
             #walk trough list 
             for pose in poses:
@@ -116,35 +119,11 @@ def main():
                     pub_pose.publish(pose)
                     rate.sleep()
                     r = diff(pose)
-            r = 1
-            state = 1
+            state += 1
+            if state ==2:
+                state =0
     
 
-        if state == 1: 
-            start = trans2Map(cfpose)
-            goal = getGoal(state) 
-            poses = planning(start, goal)
-            for pose in poses:
-                while r > 0.1: 
-                    pub_pose.publish(pose)
-                    rate.sleep()
-                    r = diff(pose)
-            r = 1
-            state = 2
-
-
-        if state == 2: 
-            start = trans2Map(cfpose)
-            goal = getGoal(state) 
-            poses = planning(start, goal)
-            for pose in poses:
-                while r > 0.1: 
-                    pub_pose.publish(pose)
-                    rate.sleep()
-                    r = diff(pose)
-            r = 1
-            #return to start 
-            state = 0
 
     rospy.spin()
 
