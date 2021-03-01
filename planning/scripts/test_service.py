@@ -13,14 +13,15 @@ def add_two_ints_client():
         start.header.seq = 0
         start.header.stamp = rospy.Time.now()
         start.header.frame_id = 'map'
-        start.pose.position.x, start.pose.position.y, start.pose.position.z = 0.5, 0.5, 0
+        
+        start.pose.position.x, start.pose.position.y, start.pose.position.z = 0, 0, 0
         start.pose.orientation.x, start.pose.orientation.y, start.pose.orientation.z, start.pose.orientation.w = 0, 0, 0, 1
 
         goal = PoseStamped()
         goal.header.seq = 0
         goal.header.stamp = rospy.Time.now()
         goal.header.frame_id = 'map'
-        goal.pose.position.x, goal.pose.position.y, goal.pose.position.z = 1.5, 0.5, 0
+        goal.pose.position.x, goal.pose.position.y, goal.pose.position.z = 8, 0, 0
         goal.pose.orientation.x, goal.pose.orientation.y, goal.pose.orientation.z, goal.pose.orientation.w = 0, 0, 0, 1
 
         path = path_service(start, goal)
