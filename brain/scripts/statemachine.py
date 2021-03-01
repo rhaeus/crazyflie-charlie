@@ -1,141 +1,285 @@
 #!/usr/bin/env python
 
+import json
+import sys
+import math
 
-import rospy 
+import rospy
+import numpy as np
+
+from tf.transformations import quaternion_from_euler
+from std_msgs.msg import Bool
+from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import PoseStamped, Vector3, PoseArray, Pose, TransformStamped
+from crazyflie_driver.msg import Position
+
 import tf2_ros
 import tf2_geometry_msgs
-from std_msgs.msg import Bool
-from geometry_msgs.msg import PoseStamped
-import tf.transformations 
-import math
+
 from cf_msgs.srv import DronePath
 
+set_points = None
+set_point_index = 0
+set_point_count = 0
+
+def move_callback(msg):
+    global set_points
+    global set_point_count
+    global set_point_index
+
+    
+
+    # cf1/pose is in odom frame
+    # set point goal is in  map frame
+    # transform pose to map frame in order to compare poses
+    # msg.header.stamp = rospy.Time.now()
+    if not tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp):
+    # if not tf_buf.can_transform('map', msg.header.frame_id, rospy.Time(0)):
+        # rospy.logwarn_throttle(5.0, 'No transform from %s to map' % msg.header.frame_id)
+        rospy.logwarn('No transform from %s to map' % msg.header.frame_id)
+        return
+
+    pose_map = tf_buf.transform(msg, 'map')
+
+    distance_to_goal = np.sqrt(math.pow(pose_map.pose.position.x - set_points[set_point_index].pose.position.x,2) 
+    + math.pow(pose_map.pose.position.y - set_points[set_point_index].pose.position.y, 2) 
+    + math.pow(pose_map.pose.position.z - set_points[set_point_index].pose.position.z, 2))
+
+    msg_roll, msg_pitch, msg_yaw = euler_from_quaternion((pose_map.pose.orientation.x,
+                                              pose_map.pose.orientation.y,
+                                              pose_map.pose.orientation.z,
+                                              pose_map.pose.orientation.w))
+
+    goal_roll, goal_pitch, goal_yaw = euler_from_quaternion((set_points[set_point_index].pose.orientation.x,
+                                              set_points[set_point_index].pose.orientation.y,
+                                              set_points[set_point_index].pose.orientation.z,
+                                              set_points[set_point_index].pose.orientation.w))
+
+    roll_dist = abs(math.degrees(msg_roll) - math.degrees(goal_roll))
+    pitch_dist = abs(math.degrees(msg_pitch) - math.degrees(goal_pitch))
+    yaw_dist = abs(math.degrees(msg_yaw) - math.degrees(goal_yaw))
+
+
+
+    if distance_to_goal < 0.1 and yaw_dist < 10:
+        # move to next setpoint or stay at last point
+        if set_point_index < set_point_count - 1:
+            set_point_index = (set_point_index + 1) 
+        # set_point_index = set_point_index % set_point_count
+
+    publish_cmd(set_points[set_point_index])
+
+def publish_cmd(goal):
+    # Need to tell TF that the goal was just generated
+    goal.header.stamp = rospy.Time.now()
+
+    # goal is in map frame
+    # drone expects goal pose in odom frame
+    if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp):
+        rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
+        return
+
+    goal_odom = tf_buf.transform(goal, 'cf1/odom')
+
+    cmd = Position()
+
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = goal_odom.header.frame_id
+
+    cmd.x = goal_odom.pose.position.x
+    cmd.y = goal_odom.pose.position.y
+    cmd.z = goal_odom.pose.position.z
+
+    roll, pitch, yaw = euler_from_quaternion((goal_odom.pose.orientation.x,
+                                              goal_odom.pose.orientation.y,
+                                              goal_odom.pose.orientation.z,
+                                              goal_odom.pose.orientation.w))
+
+    cmd.yaw = math.degrees(yaw)
+
+    pub_cmd.publish(cmd)
+    
+
+# def pose_stamped_from_marker(m):
+#     p = PoseStamped()
+#     p.header.seq = str(m['id'])
+#     p.header.stamp = rospy.Time(0)
+#     p.header.frame_id = 'map'
+
+#     p.pose.position = Vector3(*m['pose']['position'])
+#     roll, pitch, yaw = m['pose']['orientation']
+#     (p.pose.orientation.x,
+#      p.pose.orientation.y,
+#      p.pose.orientation.z,
+#      p.pose.orientation.w) = quaternion_from_euler(math.radians(roll),
+#                                                      math.radians(pitch),
+#                                                      math.radians(yaw))
+#     return p
+
+# def transform_from_marker(m):
+#     t = TransformStamped()
+#     t.header.frame_id = 'map'
+#     t.child_frame_id = 'setpoint' + str(m['id'])
+#     t.transform.translation = Vector3(*m['pose']['position'])
+#     roll, pitch, yaw = m['pose']['orientation']
+#     (t.transform.rotation.x,
+#      t.transform.rotation.y,
+#      t.transform.rotation.z,
+#      t.transform.rotation.w) = quaternion_from_euler(math.radians(roll),
+#                                                      math.radians(pitch),
+#                                                      math.radians(yaw))
+#     return t
+
+global is_localized
+is_localized = False
+
 def flagcallback(msg):
-    global flag
-    flag = msg.data
+    global is_localized
+    is_localized = msg.data
+
+rospy.init_node('move_drone')
+
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+# sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, move_callback)
+
+sub_flag = rospy.Subscriber("is_localized", Bool, flagcallback)
 
 
-def posecallback(msg):
-    global cfpose
-    cfpose = msg
 
+
+tf_buf   = tf2_ros.Buffer()
+tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
 def trans2Map(msg):
-    transform = tf_buf.lookup_transform('map',msg.header.frame_id,msg.header.stamp,rospy.Duration(1))
-    mapPose = tf2_geometry_msgs.do_transform_pose(msg,transform)
-    return mapPose
-
-def trans2Odom(msg):
-    transform = tf_buf.lookup_transform('cf1/odom',msg.header.frame_id,rospy.Time(0),rospy.Duration(1))
-    odomPose = tf2_geometry_msgs.do_transform_pose(msg,transform)
-    return odomPose
-
-
-def getGoal(state):
-    msg = PoseStamped
-    
-    # exrtract goal from poses
-    pose = waypoints(state)
-
-    # set upp message
-    msg.header.frame_id = 'map'
-    msg.pose.position.x = pose[0]
-    msg.pose.position.y = pose[1]
-    msg.pose.position.z = pose[2]
-    (msg.pose.orientation.x,
-     msg.pose.orientation.y,
-     msg.pose.orientation.z,
-     msg.pose.orientation.w) =tf.transformations.quaternion_from_euler(pose[3],0,0)
-    return msg
+    # marker pose is in frame camera_link
+    if not tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp, rospy.Duration(1)):
+        rospy.logwarn('No transform from %s to map', msg.header.frame_id)
+        return
+    # transform = tf_buf.lookup_transform('map',msg.header.frame_id,msg.header.stamp,rospy.Duration(1))
+    # mapPose = tf2_geometry_msgs.do_transform_pose(msg,transform)
+    return tf_buf.transform(msg, 'map')
 
 
-def diff(pose):
-    x = pose.pose.posisiton.x
-    y = pose.pose.posisiton.y
-    z = pose.pose.posisiton.z
-    angles = tf.transformations.euler_from_quaternion(pose.pose.orientation)
-    cfx = cfpose.pose.posisiton.x
-    cfy = cfpose.pose.posisiton.y
-    cfz = cfpose.pose.posisiton.z
-    cfangles = tf.transformations.euler_from_quaternion(cfpose.pose.orientation)
-    # calc distance to goal pose
-    r = math.sqrt((x-cfx)**2+(y-cfy)**2+(z-cfz)**2+(angles[0]-cfangles[0])**2)
-    return r
-
-
-def main():
-    rospy.init_node('statemachine')
-    global flag, tf_buf, waypoints
-    print("Initiating state machine")
-    print("Setting up initial parameters")
-    # transform buffer
-    tf_buf = tf2_ros.Buffer() 
-    tf_lstn = tf2_ros.TransformListener(tf_buf)
-    
-    #localize flag
-    flag = False
-    sub_flag = rospy.Subscriber("is_localized", Bool, flagcallback)
-    
-    # cf pose
-    sub_cfpose = rospy.Subscriber("cf1/pose", PoseStamped, posecallback)
-    
-    # command postion publisher 
-    pub_pose = rospy.Publisher('/cf1/cmd_position', PoseStamped,queue_size=10)
-    
-    # sleep for tf to buffer a bit
-    rate = rospy.Rate(1)
-    rate.sleep()
-
-    # start planning service
-    print("Waiting for planning service")
-    rospy.wait_for_service('drone_path')
-    planning = rospy.ServiceProxy('drone_path', DronePath)
-
-    # goal coordinates in map frame
-    #lst=([x,y,z,yaw][x,y,z,yaw][....])
-    waypoints = []
-    waypoints.append([1,1,0.4,0])
-    waypoints.append([1.5,1,0.4,90])    
-    waypoints.append([1,1.5,0.4,180])
-
-
+def main(argv=sys.argv):
     state = 0
-    # rate for cmd posistion publish
-    rate = rospy.Rate(20)
-    print("Starting states")
-    while flag:
-        
-        if state <= 4:
-            r = 1
-            # transform cf pose to map frame, return PoseStamped msg
-            start = trans2Map(cfpose)
-            # get goal pose in map frame, return PoseStamed msg
-            goal = getGoal(state) 
-            # call planning service for list of pose stamped msg between start and goal
-            poses = planning(start, goal)
-            #walk trough list 
-            for pose in poses:
-                while r > 0.1: # how close to sub pose drone need to be to continue 
-                    pub_pose.publish(pose)
-                    rate.sleep()
-                    r = diff(pose)
-            state += 1
-            if state ==2:
-                state =0
-    
 
+    while not rospy.is_shutdown():
+        
+        if state == 0: # localize
+            print("wait for localize")
+            global is_localized
+            if is_localized:
+                print("localized")
+                state = 1
+
+        elif state == 1: # plan path
+            print("getting path")
+            drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
+            # transform cf pose to map frame, return PoseStamped msg
+            # start = trans2Map(drone_pose)
+            start = PoseStamped()
+            start.header.frame_id = 'map'
+            start.pose.position.x = 0
+            start.pose.position.y = 0
+            start.pose.position.z = 0
+            (start.pose.orientation.x,
+            start.pose.orientation.y,
+            start.pose.orientation.z,
+            start.pose.orientation.w) = quaternion_from_euler(0,0,0)
+
+            goal = PoseStamped()
+            goal.header.frame_id = 'map'
+            goal.pose.position.x = 1.5
+            goal.pose.position.y = 0.5
+            goal.pose.position.z = 0
+            (goal.pose.orientation.x,
+            goal.pose.orientation.y,
+            goal.pose.orientation.z,
+            goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
+
+            print("start: ", start)
+            print("goal: ", goal)
+
+            # call planning service for list of pose stamped msg between start and goal
+            rospy.wait_for_service('drone_path')
+            planning_srv = rospy.ServiceProxy('drone_path', DronePath)
+            path = planning_srv(start, goal)
+            set_points = path
+            set_point_count = len(set_points)
+
+            state = 3
+
+        elif state == 3: # get ready to move to points
+            print("get ready to move to points")
+            sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, move_callback)
+            state = 4
+
+        elif state == 4: # it should move
+            state = 4 
+
+    
+    # is_localized = False
+    # # wait for localize
+    # while not is_localized:
+    #     print("not loc")
+    #     rospy.spin()
+
+    
+    # print("after loc")
+
+
+    # # get path 
+    # #transform cf pose to map frame, return PoseStamped msg
+    # start = trans2Map(drone_pose)
+    # # get goal pose in map frame, return PoseStamed msg
+    # goal = PoseStamped()
+    # goal.header.frame_id = 'map'
+    # goal.pose.position.x = 1.5
+    # goal.pose.position.y = 0.5
+    # goal.pose.position.z = 0
+    # (goal.pose.orientation.x,
+    # goal.pose.orientation.y,
+    # goal.pose.orientation.z,
+    # goal.pose.orientation.w) =tf.transformations.quaternion_from_euler(0,0,0)
+    # # call planning service for list of pose stamped msg between start and goal
+    # path = planning(start, goal)
+   
+
+    # # create a pose stamped for each setpoint and store in list   
+    # global set_points
+    # set_points = [pose_stamped_from_marker(m) for m in points['markers']]
+
+    # # Create a transform for each setpoint and publish it as tf
+    # transforms = [transform_from_marker(m) for m in points['markers']]
+    # broadcaster = tf2_ros.StaticTransformBroadcaster()
+    # broadcaster.sendTransform(transforms)
+
+    # global set_point_count
+    # set_point_count = len(set_points)
 
     rospy.spin()
 
+# def main(argv=sys.argv):
+#     # Let ROS filter through the arguments
+#     args = rospy.myargv(argv=argv)
+
+#     # Load setpoints from json file that is given as argument
+#     with open(args[1], 'rb') as f:
+#         points = json.load(f)
+
+#     # create a pose stamped for each setpoint and store in list   
+#     global set_points
+#     set_points = [pose_stamped_from_marker(m) for m in points['markers']]
+
+#     # Create a transform for each setpoint and publish it as tf
+#     transforms = [transform_from_marker(m) for m in points['markers']]
+#     broadcaster = tf2_ros.StaticTransformBroadcaster()
+#     broadcaster.sendTransform(transforms)
+
+#     global set_point_count
+#     set_point_count = len(set_points)
+
+#     rospy.spin()
+
 if __name__ == "__main__":
     main()
-
-"""
-    if tf_buf.can_transform('cf1/odom','map',rospy.Time.now(), timeout=rospy.Duration(0.1)):
-        b = True
-        print("Localized")
-    else:
-        b = False
-        print("Not localized")
-
-"""
