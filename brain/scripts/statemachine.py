@@ -57,6 +57,7 @@ def diff(pose):
     cfy = cfpose.pose.posisiton.y
     cfz = cfpose.pose.posisiton.z
     cfangles = tf.transformations.euler_from_quaternion(cfpose.pose.orientation)
+    # calc distance to goal pose
     r = math.sqrt((x-cfx)**2+(y-cfy)**2+(z-cfz)**2+(angles[0]-cfangles[0])**2)
     return r
 
@@ -108,7 +109,7 @@ def main():
             start = trans2Map(cfpose)
             # get goal pose in map frame, return PoseStamed msg
             goal = getGoal(state) 
-            # call service for list of pose stamped msg between start and goal
+            # call planning service for list of pose stamped msg between start and goal
             poses = planning(start, goal)
             #walk trough list 
             for pose in poses:
