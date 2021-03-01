@@ -119,7 +119,7 @@ class OccupancyGrid():
                             self.grid[i, startX+1] = 2
                 else:
                     for i in range(endY, startY):
-                        self.self.grid[i, startX] = 1
+                        self.grid[i, startX] = 1
                         #self.grid[i-1, startX] = 2
                         #self.grid[i+1, startX] = 2
                         #self.grid[i, startX-1] = 2
