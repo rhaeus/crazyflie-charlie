@@ -74,6 +74,7 @@ class pathPlanning():
     # - Probably a lot of other stuff  
     def __init__(self, grid):
         self.grid = grid
+        #self.stepSize = stepSize
         self.xMin, self.yMin = 0, 0
         self.xMax, self.yMax = len(self.grid[0]) - 1, len(self.grid) - 1
         self.movements = np.array([(1, 0), (0,1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)])
