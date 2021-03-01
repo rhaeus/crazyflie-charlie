@@ -23,41 +23,21 @@ def transform_from_marker(m):
                                                      math.radians(yaw))
     return t
 
-def transform_from_object(m):
-    t = TransformStamped()
-    t.header.frame_id = 'map'
-    t.child_frame_id = 'object/' + str(m['sign'])
-    t.transform.translation = Vector3(*m['pose']['position'])
-    roll, pitch, yaw = m['pose']['orientation']
-    (t.transform.rotation.x,
-     t.transform.rotation.y,
-     t.transform.rotation.z,
-     t.transform.rotation.w) = quaternion_from_euler(math.radians(roll),
-                                                     math.radians(pitch),
-                                                     math.radians(yaw))
-    return t
-
 def main(argv=sys.argv):
     # Let ROS filter through the arguments
     args = rospy.myargv(argv=argv)
-
-    rospy.init_node('displaymapmarkers')
 
     # Load world JSON
     with open(args[1], 'rb') as f:
         world = json.load(f)
 
     # Create a transform for each marker
-    marker_transforms = [transform_from_marker(m) for m in world['markers']]
+    transforms = [transform_from_marker(m) for m in world['markers']]
 
-    object_transforms = [transform_from_object(m) for m in world['roadsigns']]
-
-    transforms = marker_transforms + object_transforms
     # Publish these transforms statically forever
-    
+    rospy.init_node('displaymapmarkers')
     broadcaster = tf2_ros.StaticTransformBroadcaster()
     broadcaster.sendTransform(transforms)
-
     rospy.spin()
 
 if __name__ == "__main__":

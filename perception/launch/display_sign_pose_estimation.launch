@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>
+      <node name="display_sign_pose_estimation" pkg="perception" type="display_sign_pose_estimation.py" output="screen">
+      </node>
+
+</launch>
