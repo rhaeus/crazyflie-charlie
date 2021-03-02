@@ -99,7 +99,7 @@ def broadcast_odom(m):
         msg.data = False
         pub.publish(msg)
     
-    rospy.sleep(0.1)
+    # rospy.sleep(0.1)
 
 
 def trans_to_map(m):
