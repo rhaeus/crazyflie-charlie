@@ -3,10 +3,10 @@
 <launch>
 
       <node pkg="perception" type="detect_and_classify_signs.py" name="detect_and_classify_signs" output="screen">
-      <param name="model_path" value="$(find perception)/dd2419_detector_baseline/trained_models/det_2021-02-27_18-00-11-614361.pt"/>
+      <param name="model_path" value="$(find perception)/dd2419_detector_baseline/trained_models/last.pt"/>
       <param name="annotation_path" value="$(find perception)/dd2419_detector_baseline/dd2419_coco/annotations/training.json"/>  
       <param name="confidence_thres" value="0.5"/>
-      <param name="bbx_dist_thres" value="100"/>
+      <param name="bbx_dist_thres" value="200"/>
       </node>
         
 
