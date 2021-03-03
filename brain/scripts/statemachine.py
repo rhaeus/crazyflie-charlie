@@ -19,48 +19,57 @@ import tf2_geometry_msgs
 from cf_msgs.srv import DronePath
 from nav_msgs.msg import Path
 
+global set_points
 set_points = None
+global set_point_index
 set_point_index = 0
+global set_point_count
 set_point_count = 0
 
-def move_callback(msg):
-    global set_points
-    global set_point_count
-    global set_point_index
+def check_distance_to_goal(pose_map, goal_map):
 
-    
-
-    # cf1/pose is in odom frame
-    # set point goal is in  map frame
-    # transform pose to map frame in order to compare poses
-    # msg.header.stamp = rospy.Time.now()
-    if not tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp):
-    # if not tf_buf.can_transform('map', msg.header.frame_id, rospy.Time(0)):
-        # rospy.logwarn_throttle(5.0, 'No transform from %s to map' % msg.header.frame_id)
-        rospy.logwarn('[move_callback] No transform from %s to map' % msg.header.frame_id)
-        return
-
-    pose_map = tf_buf.transform(msg, 'map')
-
-    distance_to_goal = np.sqrt(math.pow(pose_map.pose.position.x - set_points[set_point_index].pose.position.x,2) 
-    + math.pow(pose_map.pose.position.y - set_points[set_point_index].pose.position.y, 2) 
-    + math.pow(pose_map.pose.position.z - set_points[set_point_index].pose.position.z, 2))
+    distance_to_goal = np.sqrt(math.pow(pose_map.pose.position.x - goal_map.pose.position.x,2) 
+    + math.pow(pose_map.pose.position.y - goal_map.pose.position.y, 2) 
+    + math.pow(pose_map.pose.position.z - goal_map.pose.position.z, 2))
 
     msg_roll, msg_pitch, msg_yaw = euler_from_quaternion((pose_map.pose.orientation.x,
                                               pose_map.pose.orientation.y,
                                               pose_map.pose.orientation.z,
                                               pose_map.pose.orientation.w))
 
-    goal_roll, goal_pitch, goal_yaw = euler_from_quaternion((set_points[set_point_index].pose.orientation.x,
-                                              set_points[set_point_index].pose.orientation.y,
-                                              set_points[set_point_index].pose.orientation.z,
-                                              set_points[set_point_index].pose.orientation.w))
+    goal_roll, goal_pitch, goal_yaw = euler_from_quaternion((goal_map.pose.orientation.x,
+                                              goal_map.pose.orientation.y,
+                                              goal_map.pose.orientation.z,
+                                              goal_map.pose.orientation.w))
 
     roll_dist = abs(math.degrees(msg_roll) - math.degrees(goal_roll))
     pitch_dist = abs(math.degrees(msg_pitch) - math.degrees(goal_pitch))
     yaw_dist = abs(math.degrees(msg_yaw) - math.degrees(goal_yaw))
 
+    return distance_to_goal, roll_dist, pitch_dist, yaw_dist
 
+def pose_callback(drone_pose_odom):
+    global set_points
+    global set_point_count
+    global set_point_index
+
+    # print("setpoints in callback: ", set_points)
+
+    
+
+    # cf1/pose is in odom frame
+    # set point goal is in  map frame
+    # transform pose to map frame in order to compare poses
+    # drone_pose_odom.header.stamp = rospy.Time(0)
+    if not tf_buf.can_transform('map', drone_pose_odom.header.frame_id, drone_pose_odom.header.stamp, rospy.Duration(5)):
+    # if not tf_buf.can_transform('map', msg.header.frame_id, rospy.Time(0)):
+        # rospy.logwarn_throttle(5.0, 'No transform from %s to map' % msg.header.frame_id)
+        rospy.logwarn('[move_callback] No transform from %s to map' % drone_pose_odom.header.frame_id)
+        return
+
+    pose_map = tf_buf.transform(drone_pose_odom, 'map')
+
+    distance_to_goal, roll_dist, pitch_dist, yaw_dist = check_distance_to_goal(pose_map, set_points[set_point_index])
 
     if distance_to_goal < 0.1 and yaw_dist < 10:
         # move to next setpoint or stay at last point
@@ -78,7 +87,7 @@ def publish_cmd(goal):
     # goal is in map frame
     # drone expects goal pose in odom frame
     if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(5)):
-        rospy.logwarn('[move_callback] No transform from %s to cf1/odom' % msg.header.frame_id)
+        rospy.logwarn('[publish_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
         return
         # rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
         # return
@@ -171,7 +180,7 @@ def main(argv=sys.argv):
     while not rospy.is_shutdown():
         
         if state == 0: # localize
-            print("wait for localize")
+            # print("wait for localize")
             global is_localized
             if is_localized:
                 print("localized")
@@ -180,22 +189,23 @@ def main(argv=sys.argv):
         elif state == 1: # plan path
             print("getting path")
             drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
+            print("drone_pose odom: ", drone_pose)
             # transform cf pose to map frame, return PoseStamped msg
-            # start = trans2Map(drone_pose)
-            start = PoseStamped()
-            start.header.frame_id = 'map'
-            start.pose.position.x = 0.5
-            start.pose.position.y = 0.5
-            start.pose.position.z = 0
-            (start.pose.orientation.x,
-            start.pose.orientation.y,
-            start.pose.orientation.z,
-            start.pose.orientation.w) = quaternion_from_euler(0,0,0)
+            start = trans2Map(drone_pose)
+            # start = PoseStamped()
+            # start.header.frame_id = 'map'
+            # start.pose.position.x = 0.5
+            # start.pose.position.y = 0.5
+            # start.pose.position.z = 0
+            # (start.pose.orientation.x,
+            # start.pose.orientation.y,
+            # start.pose.orientation.z,
+            # start.pose.orientation.w) = quaternion_from_euler(0,0,0)
 
             goal = PoseStamped()
             goal.header.frame_id = 'map'
-            goal.pose.position.x = 1.5
-            goal.pose.position.y = 0.5
+            goal.pose.position.x = 8
+            goal.pose.position.y = 0
             goal.pose.position.z = 0
             (goal.pose.orientation.x,
             goal.pose.orientation.y,
@@ -210,15 +220,18 @@ def main(argv=sys.argv):
             planning_srv = rospy.ServiceProxy('drone_path', DronePath)
             path = planning_srv(start, goal)
             path = path.path
+            global set_points
             set_points = path.poses
-            print("setpoints: ", set_points)
+            # print("setpoints: ", set_points)
+            global set_point_count
             set_point_count = len(set_points)
+            # print("setpoints count: ", set_point_count)
 
-            state = 4
+            state = 3
 
         elif state == 3: # get ready to move to points
             print("get ready to move to points")
-            sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, move_callback)
+            sub_pose = rospy.Subscriber('/cf1/pose', PoseStamped, pose_callback)
             state = 4
 
         elif state == 4: # it should move
