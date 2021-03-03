@@ -221,6 +221,15 @@ def broadcast_odom(m):
     
     broadcaster.sendTransform(trans)
 
+    if tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
+        msg = Bool()
+        msg.data = True
+        pub.publish(msg)
+    else:
+        msg = Bool()
+        msg.data = False
+        pub.publish(msg)
+
 
 rospy.init_node('marker_detection')
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
@@ -231,13 +240,13 @@ broadcaster = tf2_ros.TransformBroadcaster()
 
 def main(argv=sys.argv):
     rospy.init_node('marker_detection')
-    global world
+    global world, pub
 
     path = str(argv[1])
     with open(path, 'rb') as f:
         world = json.load(f)  
 
-    #pub = rospy.Publisher('is_localized', Bool, queue_size=10)
+    pub = rospy.Publisher('is_localized', Bool, queue_size=10)
     #sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 
     rate = rospy.Rate(10)
