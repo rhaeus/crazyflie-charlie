@@ -43,7 +43,7 @@ class GridMap:
 
         self.inflation_radius_cells = int(self.inflation_radius_m / self.resolution)
 
-        self.map_data = np.full((self.height, self.width), self.unknown_space, dtype=np.int8)
+        self.map_data = np.full((self.height, self.width), self.free_space, dtype=np.int8)
         self.read_walls()
 
         self.inflate_map(self.inflation_radius_cells)
@@ -69,9 +69,13 @@ class GridMap:
         x_index = int( (coord[0] - self.b_min[0]) / self.resolution)
         y_index = int( (coord[1] - self.b_min[1]) / self.resolution)
         return (x_index, y_index)
+
+    def grid_index_to_coord(self, index):
+        # TODO maybe return cell center
+        return (index[0] * self.resolution + self.b_min[0], index[1] * self.resolution + self.b_min[1]) 
     
     def get_flattened_index(self, index):
-        return index[0] + self.width * index[y]
+        return index[0] + self.width * index[1]
     
     def is_coord_in_range(self, coord):
         return coord[0] >= self.b_min[0] and coord[0] <= self.b_max[0] and coord[1] >= self.b_min[1] and coord[1] <= self.b_max[1]
