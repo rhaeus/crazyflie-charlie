@@ -3,6 +3,7 @@ import numpy as np
 import json 
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import OccupancyGrid
+from math import fabs
 
 
 class GridMap:
@@ -151,3 +152,41 @@ class GridMap:
         map.data = self.map_data.reshape(-1) # (self.__map.size)
 
         return map
+
+    # use raytrace from introduction to robotics course 
+    def raytrace(self, start, end):
+        """Returns all cells in the grid map that has been traversed
+        from start to end, including start and excluding end.
+        start = (x, y) grid map index
+        end = (x, y) grid map index
+        """
+        (start_x, start_y) = start
+        (end_x, end_y) = end
+        x = start_x
+        y = start_y
+        (dx, dy) = (fabs(end_x - start_x), fabs(end_y - start_y))
+        n = dx + dy
+        x_inc = 1
+        if end_x <= start_x:
+            x_inc = -1
+        y_inc = 1
+        if end_y <= start_y:
+            y_inc = -1
+        error = dx - dy
+        dx *= 2
+        dy *= 2
+
+        traversed = []
+        for i in range(0, int(n)):
+            traversed.append((int(x), int(y)))
+
+            if error > 0:
+                x += x_inc
+                error -= dy
+            else:
+                if error == 0:
+                    traversed.append((int(x + x_inc), int(y)))
+                y += y_inc
+                error += dx
+
+        return traversed

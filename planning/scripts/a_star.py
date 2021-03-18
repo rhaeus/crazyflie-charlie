@@ -16,10 +16,7 @@ class AStar:
         self.max_iterations = 10000
 
     
-    def plan(self, start_pose, end_pose):    
-        start_index = self.grid_map.coord_to_grid_index((start_pose.pose.position.x, start_pose.pose.position.y))
-        end_index = self.grid_map.coord_to_grid_index((end_pose.pose.position.x, end_pose.pose.position.y))
-
+    def plan(self, start_index, end_index):    
         start_node = Node(start_index)
         end_node = Node(end_index)
 
@@ -91,13 +88,41 @@ class AStar:
             current = current.parent
         return path[::-1] # Return reversed path 
 
-    # def sparsen_path(path):
+    def sparsen_path(self, path):
+        if len(path) <= 1:
+            print("no path found, nothing there to sparsen")
+
+        new_path = []
+        new_path.append(path[0]) # add start point
+        last_index_added = 0
+
+        goal_index = len(path) - 1
+
+        while last_index_added != goal_index:
+            for i in range(last_index_added + 1, len(path)):
+                ray = self.grid_map.raytrace(path[last_index_added], path[i])
+                # check if obstacle on the way
+                blocked = False
+                for x, y in ray:
+                    if self.grid_map.get_value((x,y)) != self.grid_map.free_space:
+                        blocked = True
+                        break
+
+                if blocked:
+                    # if blocked add last waypoint to new path
+                    new_path.append(path[i-1])
+                    last_index_added = i - 1
+                    break
+                else:
+                    # if we are at the last waypoint and its not blocked add goal point
+                    if i == len(path) - 1:
+                        new_path.append(path[-1])
+                        last_index_added = len(path) - 1
+        
+        return new_path
 
 
     def check_location(self, node):
-        print("index: ", node.position)
-        print("range:", self.grid_map.is_index_in_range(node.position))
-        print("value: ", self.grid_map.get_value(node.position))
         return self.grid_map.is_index_in_range(node.position) and self.grid_map.get_value(node.position) == self.grid_map.free_space
 
 
