@@ -18,8 +18,9 @@ if __name__ == '__main__':
     # load map
     map_path = rospy.get_param('~map_file_path')
     resolution = rospy.get_param('~map_resolution')
+    inflation_radius = rospy.get_param('~inflation_radius')
 
-    map = GridMap(map_path, resolution)
+    map = GridMap(map_path, resolution, inflation_radius)
     msg = map.get_ros_message()
     
     # publish map

@@ -7,12 +7,13 @@ from nav_msgs.msg import OccupancyGrid
 
 class GridMap:
 
-    def __init__(self, map_path, resolution):
+    def __init__(self, map_path, resolution, inflation_radius):
         self.resolution = resolution
         self.unknown_space = -1
         self.free_space = 0
-        self.c_space = 128
-        self.occupied_space = 254
+        self.c_space = 50
+        self.occupied_space = 100
+        self.inflation_radius_m = inflation_radius 
 
         self.load_map(map_path)
         
@@ -32,22 +33,72 @@ class GridMap:
         self.width = int((self.b_max[0] - self.b_min[0]) / float(dx));
         self.height = int((self.b_max[1] - self.b_min[1]) / float(dy));
 
-        print("width:", self.width)
-        print("height:", self.height)
+        # print("width:", self.width)
+        # print("height:", self.height)
 
         # put origin of the map to (0,0)
         self.origin = Pose()
         self.origin.position.x = self.b_min[0]
         self.origin.position.y = self.b_min[1]
 
+        self.inflation_radius_cells = int(self.inflation_radius_m / self.resolution)
 
         self.map_data = np.full((self.height, self.width), self.unknown_space, dtype=np.int8)
         self.read_walls()
+
+        self.inflate_map(self.inflation_radius_cells)
+
+    def inflate_map(self, radius):
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.map_data[y, x] == self.occupied_space:
+                    for nx in range(x - radius, x + radius + 1):
+                        for ny in range(y - radius, y + radius + 1):
+                            if not self.is_index_in_range((nx, ny)):
+                                continue
+                            # d = hypot(x - nx, y - ny)
+                            # if d <= radius:
+                            if self.map_data[ny, nx] != self.occupied_space:
+                                self.map_data[ny, nx] = self.c_space
+
     
     def coord_to_grid_index(self, coord):
+        if not self.is_coord_in_range(coord):
+            print("coord outside grid boundary!")
+
         x_index = int( (coord[0] - self.b_min[0]) / self.resolution)
         y_index = int( (coord[1] - self.b_min[1]) / self.resolution)
         return (x_index, y_index)
+    
+    def get_flattened_index(self, index):
+        return index[0] + self.width * index[y]
+    
+    def is_coord_in_range(self, coord):
+        return coord[0] >= self.b_min[0] and coord[0] <= self.b_max[0] and coord[1] >= self.b_min[1] and coord[1] <= self.b_max[1]
+
+    def is_index_in_range(self, index):
+        return index[0] >= 0 and index[0] < self.width and index[1] >= 0 and index[1] < self.height
+
+    def get_cell_neighbors(self, cell_index):
+        neighbors = []
+        for x in range(-1, 2):
+            for y in range(-1, 2):
+                if x == 0 and y == 0:
+                    continue
+
+                neigbor = (cell_index[0] + x, cell_index[1] + y)
+
+                if self.is_index_in_range(neigbor):
+                    neighbors.append(neigbor)
+
+        return neighbors
+
+    def get_value(self, cell_index):
+        if not self.is_index_in_range(cell_index):
+            print("cell index out of range")
+        
+        return self.map_data[cell_index[1], cell_index[0]]
+
 
     def read_walls(self):
         walls = self.json_world['walls']
