@@ -13,7 +13,7 @@ class AStar:
 
     def __init__(self, grid_map):
         self.grid_map = grid_map
-        self.max_iterations = 500000
+        self.max_iterations = 5000
 
     
     def plan(self, start_index, end_index):    
@@ -31,7 +31,7 @@ class AStar:
 
             if count > self.max_iterations:
                 print("A* reached max iterations")
-                break
+                return []
 
             # find node with minimum cost
             current_grid_index = min(open_list, key=lambda o: open_list[o].total_cost)
