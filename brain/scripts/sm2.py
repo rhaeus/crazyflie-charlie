@@ -63,13 +63,13 @@ def main():
     rate = rospy.Rate(10)
 
     while not rospy.is_shutdown():
-        #print(state)
+        #check if localized 
         if state == 0:
             if is_localized:
                 #print('localized')
                 state = 1
         
-
+        #plan 
         if state == 1:
             start, goal = PoseStamped(), PoseStamped()
             start = pose 
@@ -89,6 +89,7 @@ def main():
                 state = 2 
                 #rospy.sleep(0.1)
 
+        #move from start to goal 
         if state == 2:
             
             poses = path.poses
@@ -116,7 +117,7 @@ def main():
                 print(cmd)
                 print('-------------------------------')
                 for i in range(50):
-                    pub_cmd.publish(cmd)
+                    #pub_cmd.publish(cmd)
                     pub_path.publish(path)
                     rate.sleep()
             state = 3
