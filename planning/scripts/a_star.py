@@ -13,7 +13,7 @@ class AStar:
 
     def __init__(self, grid_map):
         self.grid_map = grid_map
-        self.max_iterations = 10000
+        self.max_iterations = 5000
 
     
     def plan(self, start_index, end_index):    
@@ -30,7 +30,8 @@ class AStar:
             count = count + 1
 
             if count > self.max_iterations:
-                break
+                print("A* reached max iterations")
+                return []
 
             # find node with minimum cost
             current_grid_index = min(open_list, key=lambda o: open_list[o].total_cost)
@@ -112,7 +113,6 @@ class AStar:
                     # if blocked add last waypoint to new path
                     new_path.append(path[i-1])
                     last_index_added = i - 1
-                    break
                 else:
                     # if we are at the last waypoint and its not blocked add goal point
                     if i == len(path) - 1:

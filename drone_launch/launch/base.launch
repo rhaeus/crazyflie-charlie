@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 
 <launch>
-      <arg name="map_name"          default="karl"/>
-      <arg name="rviz_config_name"  default="erik"/>
-      <arg name="use_rviz"          default="true"/>
-      <arg name="grid_size"         default="10.0"/>
+      <arg name="map_name" default="ramona"/>
       <arg name="map_resolution" default="0.05"/>
+      <arg name="inflation_radius" default="0.1"/>
 
+      <arg name="rviz_config_name"  default="erik"/>
+      <arg name="use_rviz"          default="false"/>
 
       <!-- publish base_link to camera_link static transform -->
       <node pkg="tf2_ros" 
@@ -32,9 +32,10 @@
       </include>
 
       <include file="$(find planning)/launch/planning.launch">
-         <arg name="map_name" value="$(arg map_name)"/>
-         <arg name="map_resolution" value="$(arg map_resolution)"/>
-      </include> -->
+      <arg name="map_name" value="$(arg map_name)"/>
+      <arg name="map_resolution" value="$(arg map_resolution)"/> 
+      <arg name="inflation_radius" value="$(arg inflation_radius)"/> 
+      </include>
       
       <!-- <include file="$(find brain)/launch/brain.launch" />  --> -->
 
