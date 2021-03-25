@@ -63,15 +63,9 @@ Visualization Manager:
           Value: true
         aruco/marker4:
           Value: true
-        cf1/base_footprint:
-          Value: true
         cf1/base_link:
           Value: true
-        cf1/base_stabelized:
-          Value: true
         cf1/camera_link:
-          Value: true
-        cf1/odom:
           Value: true
         map:
           Value: true
@@ -92,18 +86,44 @@ Visualization Manager:
             {}
           aruco/marker4:
             {}
-          cf1/odom:
-            cf1/base_footprint:
-              cf1/base_stabelized:
-                {}
-            cf1/base_link:
-              cf1/camera_link:
-                {}
           object/dangerous_curve_left:
             {}
           object/stop:
             {}
       Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /path_pub
+      Unreliable: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /cf1/grid_map
+      Unreliable: false
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
@@ -170,4 +190,4 @@ Window Geometry:
     collapsed: false
   Width: 1200
   X: 67
-  Y: 30
+  Y: 27

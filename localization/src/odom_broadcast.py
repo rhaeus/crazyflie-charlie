@@ -114,7 +114,7 @@ sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 tf_buf = tf2_ros.Buffer() 
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 broadcaster = tf2_ros.TransformBroadcaster()
-pub = rospy.Publisher('is_localized', Bool, queue_size=10)
+pub = rospy.Publisher('/is_localized', Bool, queue_size=10)
 
 def main(argv=sys.argv):
     global world
@@ -126,7 +126,7 @@ def main(argv=sys.argv):
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         if t and rospy.Time.now()-old.header.stamp > rospy.Duration(secs=0.15):
-            print("Using old aruco marker for localization.")
+            #print("Using old aruco marker for localization.")
             t.header.stamp = rospy.Time.now()
             broadcaster.sendTransform(t)
         rate.sleep()
