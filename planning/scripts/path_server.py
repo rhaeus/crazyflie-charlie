@@ -29,19 +29,6 @@ def plan_path(req):
     start_pose, goal_pose = req.start, req.goal
 
     start_index = grid_map.coord_to_grid_index((start_pose.pose.position.x, start_pose.pose.position.y))
-<<<<<<< HEAD
-    goal_index = grid_map.coord_to_grid_index((goal_pose.pose.position.x, goal_pose.pose.position.y))
-
-    astar = AStar(grid_map)
-
-    path_indices = astar.plan(start_index, goal_index)
-    # print("path", path_indices)
-    path_indices = astar.sparsen_path(path_indices)
-    # print("sparse path", path_indices)
-
-    if len(path_indices) <= 1:
-        print("no path found")
-=======
     # print("start_index: ", start_index)
     goal_index = grid_map.coord_to_grid_index((goal_pose.pose.position.x, goal_pose.pose.position.y))
     # print("goal_index: ", goal_index)
@@ -63,7 +50,6 @@ def plan_path(req):
         # print("sparse path", path_indices)
 
     print("planning done!")
->>>>>>> d26566d76df6366a2ce5033eff9d2066434beb7d
 
     path = Path()
     path.header.stamp = rospy.Time.now()
@@ -75,10 +61,7 @@ def plan_path(req):
         temp.header.frame_id = 'map'
         temp.header.seq = i
         (x, y) = grid_map.grid_index_to_coord((path_indices[i]))
-<<<<<<< HEAD
-=======
         # print("waypoint: ", x,y)
->>>>>>> d26566d76df6366a2ce5033eff9d2066434beb7d
         temp.pose.position.x = x
         temp.pose.position.y = y
         temp.pose.position.z = 0.4
