@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="brain" type="sm2.py"    name="statemachine"    output="screen"></node> 
+    <node pkg="brain" type="brain.py"    name="statemachine"    output="screen"></node> 
 </launch>

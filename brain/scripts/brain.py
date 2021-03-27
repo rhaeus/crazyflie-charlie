@@ -16,7 +16,7 @@ from crazyflie_driver.msg import Position
 import tf2_ros
 import tf2_geometry_msgs
 
-from cf_msgs.srv import DronePath
+from cf_msgs.srv import DronePath, Explore
 from nav_msgs.msg import Path
 
 
@@ -110,33 +110,48 @@ def main(argv=sys.argv):
 
     state = 0
     path = []
-    current_waypoint_index = 0
+    current_waypoint_index = -1
+    current_waypoint = PoseStamped()
     goal = PoseStamped()
     global is_localized
     is_localized = True
 
     while not rospy.is_shutdown():
+
+        # publish position command if valid to prevent drone from landing
+        if current_waypoint_index != -1:
+            publish_cmd(current_waypoint)
         
         if state == 0: # startup
             # liftoff
+            drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
+            start = trans2Map(drone_pose)
+            start.pose.position.z = 0.4;
+            publish_cmd(start)
+
             state = 10
             print("startup done, go to state 10")
         
         if state == 10: # localize
-            # spin if not localized
+            # TODO spin if not localized
             if is_localized:
                 state = 20
                 print("localized, go to state 20")
 
         if state == 20: # get next goal for exploration
-            goal.header.frame_id = 'map'
-            goal.pose.position.x = 8
-            goal.pose.position.y = 0
-            goal.pose.position.z = 0
-            (goal.pose.orientation.x,
-            goal.pose.orientation.y,
-            goal.pose.orientation.z,
-            goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
+            rospy.wait_for_service('explorer')
+            explorer_srv = rospy.ServiceProxy('explorer', Explore)
+            result = explorer_srv()
+            goal = result.next_goal
+            # goal.header.frame_id = 'map'
+            # goal.pose.position.x = 8
+            # goal.pose.position.y = 0
+            # goal.pose.position.z = 0
+            # (goal.pose.orientation.x,
+            # goal.pose.orientation.y,
+            # goal.pose.orientation.z,
+            # goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
+            print(goal)
 
             state = 30
             print("set new goal for exploration, go to state 30")
@@ -191,6 +206,11 @@ def main(argv=sys.argv):
                 else:
                     state = 20
                     print("reached final waypoint, go to state 20")
+
+        if state == 100: # intruder found
+            print("=================================")
+            print("======FOUND THE INTRUDER!========")
+            print("=================================")
 
 
         rate.sleep()
