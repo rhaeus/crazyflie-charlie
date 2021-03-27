@@ -141,11 +141,13 @@ def main(argv=sys.argv):
             # liftoff
             drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
             start = trans2Map(drone_pose)
-            start.pose.position.z = 0.4;
-            publish_cmd(start)
-
-            state = 10
-            print("startup done, go to state 10")
+            if start is not None:
+                start.pose.position.z = 0.4;
+                current_waypoint_index = 0
+                current_waypoint = start
+                publish_cmd(current_waypoint)
+                state = 10
+                print("startup done, go to state 10")
         
         if state == 10: # localize
             # TODO spin if not localized
@@ -178,14 +180,15 @@ def main(argv=sys.argv):
             planning_srv = rospy.ServiceProxy('drone_path', DronePath)
             path = planning_srv(start, goal)
             path = path.path
-            current_waypoint_index = 0
 
             if len(path.poses) == 0:
                 # no path found, go back to explore
+                # current_waypoint_index = -1
                 state = 20
                 print("no path found, go to state 20")
             else:
                 path_pub.publish(path)
+                current_waypoint_index = 0
                 state = 40
                 print("path found, go to state 40")
 
