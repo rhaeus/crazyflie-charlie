@@ -1,4 +1,10 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="intruder_id" default="0"/>
+
     <node pkg="brain" type="brain.py"    name="statemachine"    output="screen"></node> 
+
+    <node pkg="brain" type="intruder_detector.py" name="intruder_detector" output="screen" >
+      <param name="intruder_id" value="$(arg intruder_id)"/> 
+    </node>
 </launch>

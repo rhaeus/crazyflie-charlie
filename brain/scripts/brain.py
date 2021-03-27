@@ -89,6 +89,10 @@ def pose_callback(msg):
     global drone_pose_map
     drone_pose_map = trans2Map(msg)
 
+def intruder_callback(msg):
+    global intruder_found
+    intruder_found = msg.data
+
 
 rospy.init_node('brain')
 
@@ -97,15 +101,23 @@ is_localized = False
 
 global drone_pose_map
 
+global intruder_found
+intruder_found = False
+
 sub_flag = rospy.Subscriber("is_localized", Bool, localize_flag_callback)
 pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 sub_pose = rospy.Subscriber("/cf1/pose", PoseStamped, pose_callback)
+sub_intruder = rospy.Subscriber("/cf1/intruder_detection_result", Bool, intruder_callback)
 path_pub = rospy.Publisher('/path_pub', Path, queue_size=10)
 
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
 def main(argv=sys.argv):
+    global drone_pose_map
+    global intruder_found
+    global is_localized
+
     rate = rospy.Rate(10)
 
     state = 0
@@ -113,7 +125,6 @@ def main(argv=sys.argv):
     current_waypoint_index = -1
     current_waypoint = PoseStamped()
     goal = PoseStamped()
-    global is_localized
     is_localized = True
 
     while not rospy.is_shutdown():
@@ -121,6 +132,10 @@ def main(argv=sys.argv):
         # publish position command if valid to prevent drone from landing
         if current_waypoint_index != -1:
             publish_cmd(current_waypoint)
+
+        # check if intruder is found
+        if intruder_found:
+            state = 100
         
         if state == 0: # startup
             # liftoff
@@ -143,15 +158,7 @@ def main(argv=sys.argv):
             explorer_srv = rospy.ServiceProxy('explorer', Explore)
             result = explorer_srv()
             goal = result.next_goal
-            # goal.header.frame_id = 'map'
-            # goal.pose.position.x = 8
-            # goal.pose.position.y = 0
-            # goal.pose.position.z = 0
-            # (goal.pose.orientation.x,
-            # goal.pose.orientation.y,
-            # goal.pose.orientation.z,
-            # goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
-            print(goal)
+            # print(goal)
 
             state = 30
             print("set new goal for exploration, go to state 30")
