@@ -125,7 +125,7 @@ def main(argv=sys.argv):
     current_waypoint_index = -1
     current_waypoint = PoseStamped()
     goal = PoseStamped()
-    is_localized = True
+    is_localized = False
 
     while not rospy.is_shutdown():
 
