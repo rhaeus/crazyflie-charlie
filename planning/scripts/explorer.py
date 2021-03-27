@@ -27,8 +27,10 @@ def explore(dummy):
 
     goal = PoseStamped()
     goal.header.frame_id = 'map'
-    goal.pose.position.x = random.randrange(grid_map.b_min[0], grid_map.b_max[0])
-    goal.pose.position.y = random.randrange(grid_map.b_min[1], grid_map.b_max[1])
+    goal.pose.position.x = random.uniform(grid_map.b_min[0], grid_map.b_max[0])
+    goal.pose.position.y = random.uniform(grid_map.b_min[1], grid_map.b_max[1])
+    # goal.pose.position.x = 1.5
+    # goal.pose.position.y = 0.5
     goal.pose.position.z = 0.4
     (goal.pose.orientation.x,
     goal.pose.orientation.y,
