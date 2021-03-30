@@ -10,19 +10,19 @@
             "id": 1,
             "name": "airport",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.12
           },
           {
             "id": 2,
             "name": "dangerous_left",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 3,
             "name": "dangerous_right",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 4,
@@ -40,7 +40,7 @@
             "id": 6,
             "name": "junction",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 7,
@@ -64,25 +64,25 @@
             "id": 10,
             "name": "residential",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.135
           },
           {
             "id": 11,
             "name": "narrows_from_left",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 12,
             "name": "narrows_from_right",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 13,
             "name": "roundabout",
             "real_width": 0.19,
-            "real_height": 0.19
+            "real_height": 0.17
           },
           {
             "id": 14,

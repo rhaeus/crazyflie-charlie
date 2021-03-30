@@ -25,10 +25,10 @@ class SignPoseEstimation:
     def __init__(self):
         self.reference_sign_path = rospy.get_param('~reference_sign_path')
 
-        self.result_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback)
-        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", SignMarkerArray, queue_size=2)
+        self.result_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback, queue_size = 1, buff_size=2**24)
+        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", SignMarkerArray, queue_size = 10)
 
-        self.image_pub = rospy.Publisher("/cf1/sign_detection/feature_matches", Image, queue_size=2)
+        self.image_pub = rospy.Publisher("/cf1/sign_detection/feature_matches", Image, queue_size = 10)
 
         self.camera_info_sub = rospy.Subscriber("/cf1/camera/camera_info", CameraInfo, self.camera_info_callback)
 
@@ -56,7 +56,7 @@ class SignPoseEstimation:
         # - descriptors
 
         self.ref_dict = {}
-        info_file = file_path = os.path.join(self.reference_sign_path, 'info.json')
+        info_file = file_path = os.path.join(self.reference_sign_path, 'sign_dimensions.json')
 
         with open(info_file, 'rb') as json_file:
             ref_info = json.load(json_file)
@@ -221,6 +221,7 @@ class SignPoseEstimation:
             # create SignMarker 
             sign_marker = SignMarker()
             sign_marker.header = image.header
+            sign_marker.header.frame_id = 'cf1/camera_link'
             sign_marker.id = bb["category"]
 
             sign_marker.pose.pose = p

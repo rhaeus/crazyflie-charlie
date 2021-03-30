@@ -82,6 +82,7 @@ def broadcast_odom(m):
     m_T_o = np.matmul(m_T_l,l_T_o)
     angles = tf.transformations.euler_from_matrix(m_T_o)
 
+    # set up transform message
     t = TransformStamped()
     t.header.stamp = m.header.stamp
     t.header.frame_id = 'map'

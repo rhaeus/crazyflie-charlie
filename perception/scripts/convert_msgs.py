@@ -16,6 +16,7 @@ def sign_label_msg_to_dict_entry(sign_label_msg):
     entry["width"] = sign_label_msg.bbx_width
     entry["height"] = sign_label_msg.bbx_height
     entry["category"] = sign_label_msg.category_id
+    entry["category_conf"] =sign_label_msg.category_conf
 
     return entry
 
@@ -49,6 +50,7 @@ def dict_entry_to_sign_label_msg(entry):
     sign_label_msg.bbx_top_left_y = entry["y"]
     sign_label_msg.bbx_width = entry["width"] 
     sign_label_msg.bbx_height = entry["height"] 
-    sign_label_msg.category_id = entry["category"] 
+    sign_label_msg.category_id = entry["category"]
+    sign_label_msg.category_conf = entry["category_conf"]
 
     return sign_label_msg
