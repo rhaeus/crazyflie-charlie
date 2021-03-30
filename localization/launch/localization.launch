@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="map_name" default="karl"/>
+
+    <node pkg="localization" type="odom_broadcast.py"   name="odom_broadcast"   output="screen" args="$(find maps)/$(arg map_name).world.json"> </node>
+    <node pkg="localization" type="base_link_pub.py"    name="base_link_pub"    output="screen"></node> 
+
+</launch>

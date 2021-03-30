@@ -1,11 +1,42 @@
 <?xml version="1.0"?>
 
 <launch>
+      <arg name="map_name" default="ramona"/>
+      <arg name="map_resolution" default="0.05"/>
+      <arg name="inflation_radius" default="0.1"/>
 
-      <include file="$(find drone_launch)/launch/static_tf_broadcast.launch" />
-      <include file="$(find drone_launch)/launch/display_map_markers.launch" />
+      <arg name="rviz_config_name"  default="erik"/>
+      <arg name="use_rviz"          default="false"/>
 
-      <include file="$(find perception)/launch/launch_all_perception.launch" />
-      <include file="$(find drone_launch)/launch/localization.launch"/>
+      <!-- publish base_link to camera_link static transform -->
+      <node pkg="tf2_ros" 
+            type="static_transform_publisher" 
+            name="base_link_camera_link_broadcaster" 
+            args="0.01 0 0.02 -1.5708 0 -1.5708 cf1/base_link cf1/camera_link" />
+
+      <!-- publish all aruco markers and road signs defined in the map as tf -->
+      <node pkg="drone_launch" type="displaymapmarkers.py" name="displaymapmarkers" output="screen" 
+            args="$(find maps)/$(arg map_name).world.json" />
+
+      <!-- <include file="$(find dd2419_simulation)/launch/aruco.launch">
+            <arg name="gui" value="false"/>
+      </include> -->
+
+      <!-- launch rviz -->
+      <node pkg="rviz" type="rviz" name="rviz" args="-d $(find drone_launch)/config/rviz/$(arg rviz_config_name).rviz" if = "$(arg use_rviz)"/> 
+
+      <!-- <include file="$(find perception)/launch/perception.launch" /> -->
+
+      <include file="$(find localization)/launch/localization.launch">
+         <arg name="map_name" value="$(arg map_name)"/>
+      </include>
+
+      <include file="$(find planning)/launch/planning.launch">
+      <arg name="map_name" value="$(arg map_name)"/>
+      <arg name="map_resolution" value="$(arg map_resolution)"/> 
+      <arg name="inflation_radius" value="$(arg inflation_radius)"/> 
+      </include>
       
+      <!-- <include file="$(find brain)/launch/brain.launch" />  --> -->
+
 </launch>

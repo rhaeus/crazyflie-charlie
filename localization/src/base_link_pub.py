@@ -21,10 +21,12 @@ def callback(m):
     t.transform.translation.y = m.pose.position.y
     t.transform.translation.z = 0
     
+    angles = tf.transformations.euler_from_quaternion([m.pose.orientation.x,m.pose.orientation.y,m.pose.orientation.z,m.pose.orientation.w])
+
     (t.transform.rotation.x,
      t.transform.rotation.y,
      t.transform.rotation.z,
-     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,0,0)
+     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,0,angles[2])
     
     
     broadcaster.sendTransform(t)
@@ -37,13 +39,12 @@ def callback(m):
     t.transform.translation.y = 0
     t.transform.translation.z = m.pose.position.z
     
-    angles = tf.transformations.euler_from_quaternion([m.pose.orientation.x,m.pose.orientation.y,m.pose.orientation.z,m.pose.orientation.w])
 
 
     (t.transform.rotation.x,
      t.transform.rotation.y,
      t.transform.rotation.z,
-     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(angles[0],0,0)
+     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,0,0)
 
 
     broadcaster.sendTransform(t)
@@ -60,7 +61,7 @@ def callback(m):
     (t.transform.rotation.x,
      t.transform.rotation.y,
      t.transform.rotation.z,
-     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,angles[1],angles[2])
+     t.transform.rotation.w) =tf.transformations.quaternion_from_euler(angles[0],angles[1],0)
 
 
     broadcaster.sendTransform(t)
