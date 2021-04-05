@@ -11,7 +11,7 @@ from tf.transformations import quaternion_from_euler
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import PoseStamped, Vector3, PoseArray, Pose, TransformStamped
-from crazyflie_driver.msg import Position
+from crazyflie_driver.msg import Position, Hover
 
 import tf2_ros
 import tf2_geometry_msgs
@@ -32,14 +32,14 @@ def trans2Map(msg):
         return
     return tf_buf.transform(msg, 'map')
 
-def publish_cmd(goal):
+def publish_pos_cmd(goal):
     # Need to tell TF that the goal was just generated
     goal.header.stamp = rospy.Time.now()
 
     # goal is in map frame
     # drone expects goal pose in odom frame
     if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(1)):
-        rospy.logwarn('[publish_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
+        rospy.logwarn('[publish_pos_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
         return
 
     goal_odom = tf_buf.transform(goal, 'cf1/odom')
@@ -60,8 +60,30 @@ def publish_cmd(goal):
 
     cmd.yaw = math.degrees(yaw)
 
-    pub_cmd.publish(cmd)
+    pub_pos_cmd.publish(cmd)
 
+def publish_vel_cmd(goal, vx, vy, vyaw):
+    # Need to tell TF that the goal was just generated
+    goal.header.stamp = rospy.Time.now()
+
+    # goal is in map frame
+    # drone expects goal pose in odom frame
+    if not tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(1)):
+        rospy.logwarn('[publish_pos_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
+        return
+
+    goal_odom = tf_buf.transform(goal, 'cf1/odom')
+
+    cmd = Hover()
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = goal_odom.header.frame_id
+    cmd.vx = vx
+    cmd.vy = vy
+    cmd.yawrate = vyaw
+    # print("vx, vy, vyaw:", vx, vy, vyaw)
+    cmd.zDistance = goal_odom.pose.position.z
+
+    pub_vel_cmd.publish(cmd)
 
 def check_distance_to_goal(pose_map, goal_map):
 
@@ -105,7 +127,8 @@ global intruder_found
 intruder_found = False
 
 sub_flag = rospy.Subscriber("is_localized", Bool, localize_flag_callback)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+pub_pos_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+pub_vel_cmd  = rospy.Publisher('/cf1/cmd_hover', Hover, queue_size=2)
 sub_pose = rospy.Subscriber("/cf1/pose", PoseStamped, pose_callback)
 sub_intruder = rospy.Subscriber("/cf1/intruder_detection_result", Bool, intruder_callback)
 path_pub = rospy.Publisher('/path_pub', Path, queue_size=10)
@@ -126,15 +149,21 @@ def main(argv=sys.argv):
     current_waypoint = PoseStamped()
     goal = PoseStamped()
     is_localized = False
+    done = False
+    
+    drone_mode = 0 # drone control mode, 0=position, 1=velocity
 
     while not rospy.is_shutdown():
 
         # publish position command if valid to prevent drone from landing
-        if current_waypoint_index != -1:
-            publish_cmd(current_waypoint)
+        if drone_mode == 0 and current_waypoint_index != -1:
+            publish_pos_cmd(current_waypoint)
 
         # check if intruder is found
-        if intruder_found:
+        if not done and intruder_found: 
+            drone_mode = 0
+            current_waypoint_index = 0
+            current_waypoint = drone_pose_map
             state = 100
         
         if state == 0: # startup
@@ -145,11 +174,28 @@ def main(argv=sys.argv):
                 start.pose.position.z = 0.4;
                 current_waypoint_index = 0
                 current_waypoint = start
-                publish_cmd(current_waypoint)
+                publish_pos_cmd(current_waypoint)
+                state = 5
+                print("liftoff")
+
+        if state == 5: #wait for liftoff
+            if abs(drone_pose_map.pose.position.z - 0.4) < 0.05:
                 state = 10
                 print("startup done, go to state 10")
-        
+
         if state == 10: # localize
+            if is_localized:
+                state = 20
+                print("localized, go to state 20")
+            else:
+                print("localizing..")
+                drone_mode = 1 # velocity control
+                hover_goal = drone_pose_map
+                state = 15
+        
+        if state == 15: # wait for spin or localize
+            publish_vel_cmd(hover_goal, 0, 0, 50)
+
             # TODO spin if not localized
             if is_localized:
                 state = 20
@@ -200,7 +246,7 @@ def main(argv=sys.argv):
 
             current_waypoint = path.poses[current_waypoint_index]
 
-            publish_cmd(current_waypoint)
+            publish_pos_cmd(current_waypoint)
             path_pub.publish(path)
 
             # print("drone pose: ", drone_pose_map)
@@ -221,6 +267,9 @@ def main(argv=sys.argv):
             print("=================================")
             print("======FOUND THE INTRUDER!========")
             print("=================================")
+            done = True
+            state = 1000 # do nothing but hover at last position
+        
 
 
         rate.sleep()

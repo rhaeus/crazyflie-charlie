@@ -14,6 +14,8 @@
             name="base_link_camera_link_broadcaster" 
             args="0.01 0 0.02 -1.5708 0 -1.5708 cf1/base_link cf1/camera_link" />
 
+      <!-- <include file="$(find drone_launch)/launch/static_tf_broadcast.launch" />  -->
+
       <!-- publish all aruco markers and road signs defined in the map as tf -->
       <node pkg="drone_launch" type="displaymapmarkers.py" name="displaymapmarkers" output="screen" 
             args="$(find maps)/$(arg map_name).world.json" />
@@ -37,6 +39,6 @@
       <arg name="inflation_radius" value="$(arg inflation_radius)"/> 
       </include>
       
-      <!-- <include file="$(find brain)/launch/brain.launch" />  --> -->
+      <include file="$(find brain)/launch/brain.launch" />  
 
 </launch>
