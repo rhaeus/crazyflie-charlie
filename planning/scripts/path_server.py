@@ -10,6 +10,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from cf_msgs.srv import DronePath, DronePathRequest, DronePathResponse 
+from tf.transformations import quaternion_from_euler
 
 from grid_map import GridMap
 from a_star import AStar
@@ -36,8 +37,8 @@ def plan_path(req):
     astar = AStar(grid_map)
 
     print("planning path...")
-    print("start: ", start_pose)
-    print("goal:", goal_pose)
+    # print("start: ", start_pose)
+    # print("goal:", goal_pose)
     path_indices = astar.plan(start_index, goal_index)
     # print("path", path_indices)
     
@@ -56,21 +57,26 @@ def plan_path(req):
     path.header.frame_id = 'map'
     path.header.seq = 0
     for i in range(len(path_indices)):
-        temp = PoseStamped()
-        temp.header.stamp = rospy.Time.now()
-        temp.header.frame_id = 'map'
-        temp.header.seq = i
+        p = PoseStamped()
+        p.header.stamp = rospy.Time.now()
+        p.header.frame_id = 'map'
+        p.header.seq = i
         (x, y) = grid_map.grid_index_to_coord((path_indices[i]))
         # print("waypoint: ", x,y)
-        temp.pose.position.x = x
-        temp.pose.position.y = y
-        temp.pose.position.z = 0.4
-        temp.pose.orientation.x = 0
-        temp.pose.orientation.y = 0
-        temp.pose.orientation.z = 0
-        temp.pose.orientation.w = 1
+        p.pose.position.x = x
+        p.pose.position.y = y
+        p.pose.position.z = 0.4
+        yaw = math.atan2(y, x)
+        (p.pose.orientation.x,
+            p.pose.orientation.y,
+            p.pose.orientation.z,
+            p.pose.orientation.w) = quaternion_from_euler(0, 0, yaw)
+        # p.pose.orientation.x = 0
+        # p.pose.orientation.y = 0
+        # p.pose.orientation.z = 0
+        # p.pose.orientation.w = 1
 
-        path.poses.append(temp)
+        path.poses.append(p)
 
         
     return DronePathResponse(path)
@@ -86,7 +92,7 @@ def path_server():
     map_resolution = rospy.get_param('~map_resolution', 0.1)
     inflation_radius = rospy.get_param('~inflation_radius', 0.1)
 
-    s = rospy.Service('drone_path', DronePath, plan_path)
+    rospy.Service('drone_path', DronePath, plan_path)
     print("Ready to plan path with A*.")
     rospy.spin()
 
