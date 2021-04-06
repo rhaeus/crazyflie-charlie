@@ -30,14 +30,13 @@ class GridMap:
         dx = self.resolution
         dy = self.resolution
 
-        # width and heigt of the grid measured in cells
-        self.width = int((self.b_max[0] - self.b_min[0]) / float(dx));
-        self.height = int((self.b_max[1] - self.b_min[1]) / float(dy));
+        # width and height of the grid measured in cells
+        self.width = int((self.b_max[0] - self.b_min[0]) / float(dx)) + 1
+        self.height = int((self.b_max[1] - self.b_min[1]) / float(dy)) + 1
 
         # print("width:", self.width)
         # print("height:", self.height)
 
-        # put origin of the map to (0,0)
         self.origin = Pose()
         self.origin.position.x = self.b_min[0]
         self.origin.position.y = self.b_min[1]
@@ -65,13 +64,18 @@ class GridMap:
     
     def coord_to_grid_index(self, coord):
         if not self.is_coord_in_range(coord):
-            print("coord outside grid boundary!")
+            print("[GridMap][coord_to_grid_index] coord outside grid boundary!")
+            return None
 
         x_index = int( (coord[0] - self.b_min[0]) / self.resolution)
         y_index = int( (coord[1] - self.b_min[1]) / self.resolution)
         return (x_index, y_index)
 
     def grid_index_to_coord(self, index):
+        if not self.is_index_in_range(index):
+            print("[GridMap][grid_index_to_coord] index out of bounds!")
+            return None
+
         # TODO maybe return cell center
         return (index[0] * self.resolution + self.b_min[0], index[1] * self.resolution + self.b_min[1]) 
     
@@ -100,7 +104,8 @@ class GridMap:
 
     def get_value(self, cell_index):
         if not self.is_index_in_range(cell_index):
-            print("cell index out of range")
+            print("[GridMap][get_value] index out of range")
+            return None
         
         return self.map_data[cell_index[1], cell_index[0]]
 
@@ -111,12 +116,17 @@ class GridMap:
             print("no walls in this map")
             return 
         
-        for wall in walls:
-            # (start_x_coord, start_y_coord) = (wall['plane']['start'][0], wall['plane']['start'][1])
-            # (stop_x_coord, stop_y_coord) = (wall['plane']['stop'][0], wall['plane']['stop'][1])
-            
+        for index, wall in enumerate(walls):
             start_coord = (wall['plane']['start'][0], wall['plane']['start'][1])
             stop_coord = (wall['plane']['stop'][0], wall['plane']['stop'][1])
+
+            if not self.is_coord_in_range(start_coord):
+                print("[WARNING][GridMap][read_walls] wall", index, " start coordinate outside airspace, wall will be clipped to space!")
+                start_coord = self.clip_coord(start_coord)
+
+            if not self.is_coord_in_range(stop_coord):
+                print("[WARNING][GridMap][read_walls] wall", index, " stop coordinate outside airspace, wall will be clipped to space!")
+                stop_coord = self.clip_coord(stop_coord)
 
             (start_x_index, start_y_index) = self.coord_to_grid_index(start_coord)
             (stop_x_index, stop_y_index) = self.coord_to_grid_index(stop_coord)
@@ -133,7 +143,41 @@ class GridMap:
 
             for x in range(start_x_index, stop_x_index + 1):
                 for y in range(start_y_index, stop_y_index + 1):
-                    self.map_data[y, x] = self.occupied_space
+                    if self.is_index_in_range((x,y)):
+                        self.map_data[y, x] = self.occupied_space
+                    else:
+                        print("[WARNING][GridMap][read_walls] wall", index, " index", (x,y), " outside airspace", (0, self.width), (0, self.height), " wall will be clipped to space!")
+                        (x_clipped, y_clipped) = self.clip_index((x,y))
+                        self.map_data[y_clipped, x_clipped] = self.occupied_space
+
+    def clip_index(self, index):
+        (x,y) = index
+        x_clipped = x
+        y_clipped = y
+        if x < 0:
+            x_clipped = 0
+        if x >= self.width:
+            x_clipped = self.width-1
+        if y < 0:
+            y_clipped = 0
+        if y >= self.height:
+            y_clipped = self.height-1
+        return (x_clipped, y_clipped)
+
+    def clip_coord(self, coord):
+        (x,y) = coord
+        x_clipped = x
+        y_clipped = y
+        if x < self.b_min[0]:
+            x_clipped = self.b_min[0]
+        if x > self.b_max[0]:
+            x_clipped = self.b_max[0]
+        if y < self.b_min[1]:
+            y_clipped = self.b_min[1]
+        if y > self.b_max[1]:
+            y_clipped = self.b_max[1]
+        return (x_clipped, y_clipped)
+
     
     def get_ros_message(self):
         map = OccupancyGrid()
