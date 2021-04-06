@@ -7,7 +7,7 @@ import math
 import rospy
 import numpy as np
 
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import PoseStamped, Vector3, PoseArray, Pose, TransformStamped
@@ -53,7 +53,7 @@ def publish_pos_cmd(goal):
     cmd.y = goal_odom.pose.position.y
     cmd.z = goal_odom.pose.position.z
 
-    roll, pitch, yaw = euler_from_quaternion((goal_odom.pose.orientation.x,
+    _, _, yaw = euler_from_quaternion((goal_odom.pose.orientation.x,
                                               goal_odom.pose.orientation.y,
                                               goal_odom.pose.orientation.z,
                                               goal_odom.pose.orientation.w))
@@ -148,7 +148,7 @@ def main(argv=sys.argv):
     current_waypoint_index = -1
     current_waypoint = PoseStamped()
     goal = PoseStamped()
-    is_localized = False
+    is_localized = True
     done = False
     
     drone_mode = 0 # drone control mode, 0=position, 1=velocity
@@ -171,7 +171,7 @@ def main(argv=sys.argv):
             drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
             start = trans2Map(drone_pose)
             if start is not None:
-                start.pose.position.z = 0.4;
+                start.pose.position.z = 0.4
                 current_waypoint_index = 0
                 current_waypoint = start
                 publish_pos_cmd(current_waypoint)
@@ -179,6 +179,7 @@ def main(argv=sys.argv):
                 print("liftoff")
 
         if state == 5: #wait for liftoff
+            publish_pos_cmd(current_waypoint)
             if abs(drone_pose_map.pose.position.z - 0.4) < 0.05:
                 state = 10
                 print("startup done, go to state 10")
@@ -189,16 +190,18 @@ def main(argv=sys.argv):
                 print("localized, go to state 20")
             else:
                 print("localizing..")
-                drone_mode = 1 # velocity control
                 hover_goal = drone_pose_map
                 state = 15
         
         if state == 15: # wait for spin or localize
+            drone_mode = 1 # velocity control
             publish_vel_cmd(hover_goal, 0, 0, 50)
 
-            # TODO spin if not localized
             if is_localized:
                 state = 20
+                drone_mode = 0
+                current_waypoint = drone_pose_map
+                current_waypoint_index = 0
                 print("localized, go to state 20")
 
         if state == 20: # get next goal for exploration
@@ -253,15 +256,46 @@ def main(argv=sys.argv):
             # print("current waypoint: ", current_waypoint)
 
             # check if waypoint reached
-            distance_to_goal, roll_dist, pitch_dist, yaw_dist = check_distance_to_goal(drone_pose_map, current_waypoint)
+            distance_to_goal, _, _, yaw_dist = check_distance_to_goal(drone_pose_map, current_waypoint)
 
             if distance_to_goal < 0.15 and yaw_dist < 10:
                 # move to next setpont or start new exploration goal
                 if current_waypoint_index < len(path.poses) - 1:
                     current_waypoint_index += 1 
                 else:
-                    state = 20
-                    print("reached final waypoint, go to state 20")
+                    state = 50
+                    print("reached final waypoint, go to state 50")
+
+        if state == 50: # spin at final waypoint
+            _, _, last_yaw = euler_from_quaternion((drone_pose_map.pose.orientation.x, 
+                                                            drone_pose_map.pose.orientation.y, 
+                                                            drone_pose_map.pose.orientation.z, 
+                                                            drone_pose_map.pose.orientation.w))
+            total_angle = 0
+            hover_goal = drone_pose_map
+            state = 55
+            print("spinning at final waypoint..")
+        
+        if state == 55:
+            drone_mode = 1 # velocity control
+            publish_vel_cmd(hover_goal, 0, 0, 50)
+            _, _, current_yaw = euler_from_quaternion((drone_pose_map.pose.orientation.x, 
+                                                            drone_pose_map.pose.orientation.y, 
+                                                            drone_pose_map.pose.orientation.z, 
+                                                            drone_pose_map.pose.orientation.w))
+            delta = math.atan2(math.sin(current_yaw-last_yaw), math.cos(current_yaw-last_yaw))
+            delta = math.degrees(delta)
+            # print("last yaw, current yaw, delta: ", math.degrees(last_yaw), math.degrees(current_yaw), delta)
+            total_angle += delta
+            # print("total_angle: ", total_angle)
+            last_yaw = current_yaw
+
+            if abs(total_angle) >= 360:
+                print("spinning at waypoint done, go to state 20")
+                drone_mode = 0
+                current_waypoint = drone_pose_map
+                current_waypoint_index = 0
+                state = 20
 
         if state == 100: # intruder found
             print("=================================")
