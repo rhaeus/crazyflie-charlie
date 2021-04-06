@@ -16,4 +16,10 @@
       <param name="map_resolution" value="$(arg map_resolution)"/> 
       <param name="inflation_radius" value="$(arg inflation_radius)"/> 
       </node>
+
+      <node pkg="planning" type="explorer.py" name="explorer" output="screen">
+      <param name="map_file_path" value="$(find maps)/$(arg map_name).world.json"/> 
+      <param name="map_resolution" value="$(arg map_resolution)"/> 
+      <param name="inflation_radius" value="$(arg inflation_radius)"/> 
+      </node>
 </launch>

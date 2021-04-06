@@ -20,6 +20,10 @@ class AStar:
         start_node = Node(start_index)
         end_node = Node(end_index)
 
+        if not self.check_location(start_node) or not self.check_location(end_node):
+            print("[A*] start or end location is not free")
+            return []
+
         open_list = dict()
         closed_list = dict()  
         open_list[self.grid_map.get_flattened_index(start_index)] = start_node
