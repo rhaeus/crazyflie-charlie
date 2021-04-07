@@ -171,7 +171,12 @@ def get_safe_spots():
         q_inter = quaternion_multiply(q3, q2)
         new_q = quaternion_multiply(q_inter, q)
 
-        # roll2, pitch2, yaw2 = euler_from_quaternion(new_q)
+        # force roll and pitch to be 0
+        # needed for when object is on floor
+        # this method would output some roll and pitch that the
+        # drone faces the floor = not good
+        _, _, yaw2 = euler_from_quaternion(new_q)
+        new_q = quaternion_from_euler(0, 0, yaw2)
         # print("roll2, pitch2, yaw2: ",math.degrees(roll2), math.degrees(pitch2), math.degrees(yaw2) )
         safe_spots.append((pos[0], pos[1], pos[2], new_q))
 
