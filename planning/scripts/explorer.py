@@ -3,11 +3,12 @@ from __future__ import print_function
 import math
 import numpy as np
 import random
+import json
 
 import rospy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseArray, Pose
 from cf_msgs.srv import ExploreReqGoal, ExploreReqGoalResponse, ExplorePoint, ExplorePointRequest, ExplorePointResponse
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, euler_from_quaternion, quaternion_multiply, quaternion_matrix, translation_matrix, rotation_matrix, concatenate_matrices, quaternion_about_axis
 
 from grid_map import GridMap
 from nav_msgs.msg import OccupancyGrid
@@ -17,6 +18,8 @@ global map_resolution
 global inflation_radius
 global explore_radius
 global grid_map
+global safe_spots
+global safe_spot_offset
 
 def explore_req_goal(req):
     # for now just return random position in map
@@ -108,6 +111,72 @@ def explore_circle(center_coord, radius_m, value, mode):
                     count += 1
     return count
 
+def get_safe_spots():
+    global safe_spots
+    safe_spots = []
+    global map_file_path
+    global safe_spot_offset
+
+    with open(map_file_path, 'rb') as f:
+        world = json.load(f)
+
+    objects = []
+    for m in world['markers']:
+        objects.append(m)
+    for s in world['roadsigns']:
+        objects.append(s)
+    
+    for o in objects:
+        translation = (o['pose']['position'][0], o['pose']['position'][1], o['pose']['position'][2])
+        roll, pitch, yaw = o['pose']['orientation']
+        q = quaternion_from_euler(math.radians(roll),
+                                            math.radians(pitch),
+                                            math.radians(yaw))
+                        
+        # get rotation and translation matrices of object
+        rot = quaternion_matrix(q)
+        t = translation_matrix(translation)
+        m = concatenate_matrices(t, rot)
+
+        # we want to be <safe_spot_offset> in front of the object
+        # the objecct coordinate system has the y axis coming out of the object 
+        # plane, so we want an offset in the y direction
+        offset = np.array([0, safe_spot_offset, 0, 1])
+
+        # we transform the offset to object space
+        # that is our goal position
+        pos = np.dot(m, offset)
+
+        # get z axis transformed to object space
+        z = np.array([0, 0, 1, 1])
+        z_trans = np.dot(rot, z)
+        z_axis = (z_trans[0], z_trans[1], z_trans[2])
+
+        # x = np.array([1, 0, 0, 1])
+        # x_trans = np.dot(rot, x)
+        # x_axis = (x_trans[0], x_trans[1], x_trans[2])
+
+        # get y axis transformed to object space
+        y = np.array([0, 1, 0, 1])
+        y_trans = np.dot(rot, y)
+        y_axis = (y_trans[0], y_trans[1], y_trans[2])
+
+        # calculate orientation of safe spot pose so that it 
+        # goes towards the object and roll and pitch are zero
+        # done by first rotate to object orientation (q)
+        # then rotate -90 degree around transformed z axis (q2)
+        # and then rotate 90 degree around transformed y axis (q3)
+        q2 = quaternion_about_axis(math.radians(-90), z_axis)
+        q3 = quaternion_about_axis(math.radians(90), y_axis)
+        q_inter = quaternion_multiply(q3, q2)
+        new_q = quaternion_multiply(q_inter, q)
+
+        # roll2, pitch2, yaw2 = euler_from_quaternion(new_q)
+        # print("roll2, pitch2, yaw2: ",math.degrees(roll2), math.degrees(pitch2), math.degrees(yaw2) )
+        safe_spots.append((pos[0], pos[1], pos[2], new_q))
+
+
+
 def explorer_server():
     rospy.init_node('explorer_service')
 
@@ -116,19 +185,39 @@ def explorer_server():
     global inflation_radius
     global explore_radius
     global grid_map
+    global safe_spots
+    global safe_spot_offset
 
 
     map_file_path = rospy.get_param('~map_file_path')
     map_resolution = rospy.get_param('~map_resolution', 0.1)
     inflation_radius = rospy.get_param('~inflation_radius', 0.1)
     explore_radius = rospy.get_param('~explore_radius', 0.4)
+    safe_spot_offset = rospy.get_param('~safe_spot_offset', 0.4)
 
     rospy.Service('explorer_request_goal', ExploreReqGoal, explore_req_goal)
     rospy.Service('explorer_explore_point', ExplorePoint, explore_point)
 
     pub = rospy.Publisher('/cf1/grid_map', OccupancyGrid, queue_size=10)
+    poses_pub = rospy.Publisher('/cf1/safe_spots', PoseArray, queue_size=10)
 
     grid_map = GridMap(map_file_path, map_resolution, inflation_radius) 
+    get_safe_spots()
+    pose_array = PoseArray()
+    pose_array.header.frame_id = 'map'
+    pose_array.header.stamp = rospy.Time.now()
+
+    for p in safe_spots:
+        pose = Pose()
+        # print("p:", p)
+        pose.position.x = p[0]
+        pose.position.y = p[1]
+        pose.position.z = p[2]
+        pose.orientation.x = p[3][0]
+        pose.orientation.y = p[3][1]
+        pose.orientation.z = p[3][2]
+        pose.orientation.w = p[3][3]
+        pose_array.poses.append(pose)
 
 
     rate = rospy.Rate(10) # 10hz
@@ -138,6 +227,7 @@ def explorer_server():
     while not rospy.is_shutdown():
         msg = grid_map.get_ros_message()
         pub.publish(msg)
+        poses_pub.publish(pose_array)
         # pub2.publish(msg2)
         rate.sleep()
 
