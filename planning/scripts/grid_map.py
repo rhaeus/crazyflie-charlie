@@ -83,8 +83,8 @@ class GridMap:
             print("[GridMap][grid_index_to_coord] index out of bounds!")
             return None
 
-        # TODO maybe return cell center
-        return (index[0] * self.resolution + self.b_min[0], index[1] * self.resolution + self.b_min[1]) 
+        # return cell center
+        return (index[0] * self.resolution + self.b_min[0] + self.resolution / 2.0, index[1] * self.resolution + self.b_min[1] + self.resolution / 2.0) 
     
     def get_flattened_index(self, index):
         return index[0] + self.width * index[1]
@@ -119,6 +119,7 @@ class GridMap:
     def set_value(self, cell_index, value):
         if not self.is_index_in_range(cell_index):
             print("cell index out of range")
+            return
         
         self.map_data[cell_index[1], cell_index[0]] = value
 
