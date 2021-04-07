@@ -3,22 +3,29 @@ import numpy as np
 import json 
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import OccupancyGrid
-from math import fabs
+from math import fabs, hypot
 
 
 class GridMap:
 
-    def __init__(self, map_path, resolution, inflation_radius):
+    def __init__(self, map_path, resolution=0.05, inflation_radius=0.1):
         self.resolution = resolution
         self.unknown_space = -1
         self.free_space = 0
+        self.explored_space = 0
         self.c_space = 50
         self.occupied_space = 100
         self.inflation_radius_m = inflation_radius 
+        self.map_data = np.empty((0))
+        self.b_max = (0,0) 
+        self.b_min = (0,0) 
 
         self.load_map(map_path)
         
     def load_map(self, map_path):
+        if map_path == None:
+            return
+
         with open(map_path, 'rb') as f:
             self.json_world = json.load(f) 
         
@@ -43,7 +50,7 @@ class GridMap:
 
         self.inflation_radius_cells = int(self.inflation_radius_m / self.resolution)
 
-        self.map_data = np.full((self.height, self.width), self.free_space, dtype=np.int8)
+        self.map_data = np.full((self.height, self.width), self.unknown_space, dtype=np.int8)
         self.read_walls()
 
         self.inflate_map(self.inflation_radius_cells)
@@ -108,6 +115,12 @@ class GridMap:
             return None
         
         return self.map_data[cell_index[1], cell_index[0]]
+
+    def set_value(self, cell_index, value):
+        if not self.is_index_in_range(cell_index):
+            print("cell index out of range")
+        
+        self.map_data[cell_index[1], cell_index[0]] = value
 
 
     def read_walls(self):
