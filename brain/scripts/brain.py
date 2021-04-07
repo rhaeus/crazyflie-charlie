@@ -91,21 +91,20 @@ def check_distance_to_goal(pose_map, goal_map):
     + math.pow(pose_map.pose.position.y - goal_map.pose.position.y, 2) 
     + math.pow(pose_map.pose.position.z - goal_map.pose.position.z, 2))
 
-    msg_roll, msg_pitch, msg_yaw = euler_from_quaternion((pose_map.pose.orientation.x,
+    _, _, msg_yaw = euler_from_quaternion((pose_map.pose.orientation.x,
                                               pose_map.pose.orientation.y,
                                               pose_map.pose.orientation.z,
                                               pose_map.pose.orientation.w))
 
-    goal_roll, goal_pitch, goal_yaw = euler_from_quaternion((goal_map.pose.orientation.x,
+    _, _, goal_yaw = euler_from_quaternion((goal_map.pose.orientation.x,
                                               goal_map.pose.orientation.y,
                                               goal_map.pose.orientation.z,
                                               goal_map.pose.orientation.w))
 
-    roll_dist = abs(math.degrees(msg_roll) - math.degrees(goal_roll))
-    pitch_dist = abs(math.degrees(msg_pitch) - math.degrees(goal_pitch))
-    yaw_dist = abs(math.degrees(msg_yaw) - math.degrees(goal_yaw))
+    yaw_dist = math.atan2(math.sin(msg_yaw-goal_yaw), math.cos(msg_yaw-goal_yaw))
+    yaw_dist = math.fabs(math.degrees(yaw_dist))
 
-    return distance_to_goal, roll_dist, pitch_dist, yaw_dist
+    return distance_to_goal, yaw_dist
 
 def pose_callback(msg):
     global drone_pose_map
@@ -256,9 +255,10 @@ def main(argv=sys.argv):
             # print("current waypoint: ", current_waypoint)
 
             # check if waypoint reached
-            distance_to_goal, _, _, yaw_dist = check_distance_to_goal(drone_pose_map, current_waypoint)
+            distance_to_goal, yaw_dist = check_distance_to_goal(drone_pose_map, current_waypoint)
+            print("distance, yaw_dist: ", distance_to_goal, yaw_dist)
 
-            if distance_to_goal < 0.15 and yaw_dist < 10:
+            if distance_to_goal < 0.15 and yaw_dist < 20:
                 # move to next setpont or start new exploration goal
                 if current_waypoint_index < len(path.poses) - 1:
                     current_waypoint_index += 1 
