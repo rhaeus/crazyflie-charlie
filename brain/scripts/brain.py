@@ -16,7 +16,7 @@ from crazyflie_driver.msg import Position, Hover
 import tf2_ros
 import tf2_geometry_msgs
 
-from cf_msgs.srv import DronePath, Explore
+from cf_msgs.srv import DronePath, ExplorePoint, ExploreReqGoal
 from nav_msgs.msg import Path
 
 
@@ -205,11 +205,11 @@ def main(argv=sys.argv):
                 print("localized, go to state 20")
 
         if state == 20: # get next goal for exploration
-            rospy.wait_for_service('explorer')
-            explorer_srv = rospy.ServiceProxy('explorer', Explore)
+            rospy.wait_for_service('explorer_request_goal')
+            explorer_srv = rospy.ServiceProxy('explorer_request_goal', ExploreReqGoal)
             result = explorer_srv()
             goal = result.next_goal
-            # print(goal)
+            print(goal)
 
             state = 30
             print("set new goal for exploration, go to state 30")
@@ -264,6 +264,10 @@ def main(argv=sys.argv):
                     current_waypoint_index += 1 
                 else:
                     state = 50
+                    # explore point
+                    rospy.wait_for_service('explorer_explore_point')
+                    explorer_srv = rospy.ServiceProxy('explorer_explore_point', ExplorePoint)
+                    explorer_srv(current_waypoint)
                     print("reached final waypoint, go to state 50")
 
         if state == 50: # spin at final waypoint
