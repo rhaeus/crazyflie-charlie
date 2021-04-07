@@ -20,39 +20,62 @@ global explore_radius
 global grid_map
 global safe_spots
 global safe_spot_offset
+global safe_spot_index
+safe_spot_index = 0
+global state # 0=safe spot, 1=random position
+state = 0
 
 def explore_req_goal(req):
-    # for now just return random position in map
-    # TODO implement smarter strategy
+    # alternate between random position (out of 10) with highest score
+    # and safe spot
+    # TODO maybe choose closest safe spot
 
     global map_file_path
     global map_resolution
     global inflation_radius
     global explore_radius
     global grid_map
+    global safe_spots
+    global safe_spot_offset
+    global safe_spot_index
+    global state
 
-    # sample 10 random points in map space and pick the one with highest score for new explored space
-    pose = (0,0, -1) # x, y, score
-    for i in range(0, 10):
-        x = random.uniform(grid_map.b_min[0], grid_map.b_max[0])
-        y = random.uniform(grid_map.b_min[1], grid_map.b_max[1])
-        score = explore_circle((x,y), explore_radius, grid_map.explored_space, 0)
-        if score > pose[2]:
-            pose = (x,y,score)
-    
     goal = PoseStamped()
     goal.header.frame_id = 'map'
-    # goal.pose.position.x = random.uniform(grid_map.b_min[0], grid_map.b_max[0])
-    # goal.pose.position.y = random.uniform(grid_map.b_min[1], grid_map.b_max[1])
-    # goal.pose.position.x = 1.5
-    # goal.pose.position.y = 0.5
-    goal.pose.position.x = pose[0]
-    goal.pose.position.y = pose[1]
-    goal.pose.position.z = 0.4
-    (goal.pose.orientation.x,
-    goal.pose.orientation.y,
-    goal.pose.orientation.z,
-    goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
+
+    if state == 0: # use safe spot
+        goal.pose.position.x = safe_spots[safe_spot_index][0]
+        goal.pose.position.y = safe_spots[safe_spot_index][1]
+        goal.pose.position.z = safe_spots[safe_spot_index][2]
+        goal.pose.orientation.x = safe_spots[safe_spot_index][3][0]
+        goal.pose.orientation.y = safe_spots[safe_spot_index][3][1]
+        goal.pose.orientation.z = safe_spots[safe_spot_index][3][2]
+        goal.pose.orientation.w = safe_spots[safe_spot_index][3][3]
+
+        safe_spot_index += 1
+        if safe_spot_index >= len(safe_spots):
+            safe_spot_index = 0
+        state = 1
+
+    elif state == 1: # random position
+        # sample 10 random points in map space and pick the one with highest score for new explored space
+        pose = (0,0, -1) # x, y, score
+        for i in range(0, 10):
+            x = random.uniform(grid_map.b_min[0], grid_map.b_max[0])
+            y = random.uniform(grid_map.b_min[1], grid_map.b_max[1])
+            score = explore_circle((x,y), explore_radius, grid_map.explored_space, 0)
+            if score > pose[2]:
+                pose = (x,y,score)
+    
+        goal.pose.position.x = pose[0]
+        goal.pose.position.y = pose[1]
+        goal.pose.position.z = 0.4
+        (goal.pose.orientation.x,
+        goal.pose.orientation.y,
+        goal.pose.orientation.z,
+        goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
+
+        state = 0
 
         
     return ExploreReqGoalResponse(goal)
