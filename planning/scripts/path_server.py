@@ -28,7 +28,7 @@ def plan_path(req):
     grid_map = GridMap(map_file_path, map_resolution, inflation_radius) 
 
     start_pose, goal_pose = req.start, req.goal
-
+    # TODO: check if inside space, return empty path if not
     start_index = grid_map.coord_to_grid_index((start_pose.pose.position.x, start_pose.pose.position.y))
     # print("start_index: ", start_index)
     goal_index = grid_map.coord_to_grid_index((goal_pose.pose.position.x, goal_pose.pose.position.y))
@@ -56,7 +56,7 @@ def plan_path(req):
     path.header.stamp = rospy.Time.now()
     path.header.frame_id = 'map'
     path.header.seq = 0
-    for i in range(len(path_indices)):
+    for i in range(len(path_indices)-1): # add all except last index because we want to use goal orientation for that one
         p = PoseStamped()
         p.header.stamp = rospy.Time.now()
         p.header.frame_id = 'map'
@@ -66,17 +66,24 @@ def plan_path(req):
         p.pose.position.x = x
         p.pose.position.y = y
         p.pose.position.z = 0.4
-        yaw = math.atan2(y, x)
+        yaw = math.atan2(y, x) # make drone face direction of movement
         (p.pose.orientation.x,
             p.pose.orientation.y,
             p.pose.orientation.z,
-            p.pose.orientation.w) = quaternion_from_euler(0, 0, yaw)
+            p.pose.orientation.w) = quaternion_from_euler(0, 0, 0)
         # p.pose.orientation.x = 0
         # p.pose.orientation.y = 0
         # p.pose.orientation.z = 0
         # p.pose.orientation.w = 1
 
         path.poses.append(p)
+
+    if len(path_indices) > 0: #if path found
+        # append goal pose
+        goal_pose.pose.position.z = 0.4
+        goal_pose.header.stamp = rospy.Time.now()
+        goal_pose.header.seq = len(path_indices)-1
+        path.poses.append(goal_pose)
 
         
     return DronePathResponse(path)
