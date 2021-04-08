@@ -138,7 +138,8 @@ pub_pos_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
 pub_vel_cmd  = rospy.Publisher('/cf1/cmd_hover', Hover, queue_size=2)
 sub_pose = rospy.Subscriber("/cf1/pose", PoseStamped, pose_callback)
 sub_intruder = rospy.Subscriber("/cf1/intruder_detection_result", Bool, intruder_callback)
-path_pub = rospy.Publisher('/path_pub', Path, queue_size=10)
+path_pub = rospy.Publisher('/cf1/path_pub', Path, queue_size=10)
+safe_zone_pub = rospy.Publisher('/cf1/safe_zone', Bool, queue_size=10)
 
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
@@ -150,6 +151,7 @@ global drone_mode
 current_waypoint_index = -1
 current_waypoint = PoseStamped()
 drone_mode = 0 # drone control mode, 0=position, 1=velocity
+
 
 def main(argv=sys.argv):
     global drone_pose_map
@@ -168,6 +170,7 @@ def main(argv=sys.argv):
     goal = PoseStamped()
     is_localized = True
     done = False
+    safe_zone = False
     
 
     while not rospy.is_shutdown():
@@ -226,6 +229,7 @@ def main(argv=sys.argv):
             explorer_srv = rospy.ServiceProxy('explorer_request_goal', ExploreReqGoal)
             result = explorer_srv()
             goal = result.next_goal
+            safe_zone = result.is_safe_zone.data
             print(goal)
 
             state = 30
@@ -281,24 +285,44 @@ def main(argv=sys.argv):
                 if current_waypoint_index < len(path.poses) - 1:
                     current_waypoint_index += 1 
                 else:
-                    state = 20
                     # explore point
                     rospy.wait_for_service('explorer_explore_point')
                     explorer_srv = rospy.ServiceProxy('explorer_explore_point', ExplorePoint)
                     explorer_srv(current_waypoint)
-                    print("reached final waypoint, go to state 50")
+                    if safe_zone:
+                        print("reached final waypoint in safe zone, go to state 50")
+                        state = 50
+                    else:
+                        print("reached final waypoint, go to state 60")
+                        state = 60
 
-        if state == 50: # spin at final waypoint
+        if state == 50: # wait in safe spot
+            # loop runs with 10hz = 10times/s -> one run takes 1/10s
+            # we want to wait 3s in safe zone
+            # therefore safe_count must be 30
+            safe_count = 30
+            safe_zone_pub.publish(True)
+            state = 55
+            print("waiting in safe zone...")
+        
+        if state == 55:
+            safe_count -= 1
+            if safe_count <= 0:
+                safe_zone_pub.publish(False)
+                state = 60
+                print("waiting done, go to state 60")
+
+        if state == 60: # spin at final waypoint
             _, _, last_yaw = euler_from_quaternion((drone_pose_map.pose.orientation.x, 
                                                             drone_pose_map.pose.orientation.y, 
                                                             drone_pose_map.pose.orientation.z, 
                                                             drone_pose_map.pose.orientation.w))
             total_angle = 0
             hover_goal = drone_pose_map
-            state = 55
+            state = 65
             print("spinning at final waypoint..")
         
-        if state == 55:
+        if state == 65:
             drone_mode = 1 # velocity control
             publish_vel_cmd(hover_goal, 0, 0, 50)
             _, _, current_yaw = euler_from_quaternion((drone_pose_map.pose.orientation.x, 
