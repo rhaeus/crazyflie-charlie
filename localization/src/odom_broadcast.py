@@ -3,13 +3,17 @@
 import sys 
 import json 
 import numpy as np
+from numpy.core.numeric import ones
+from numpy.ma.core import dot
 import tf2_geometry_msgs
+
+from kalmanfilter import Kalman
 
 import math
 import rospy
 import tf2_ros
 from aruco_msgs.msg import MarkerArray
-from geometry_msgs.msg import TransformStamped, PoseStamped, Transform
+from geometry_msgs.msg import TransformStamped, PoseStamped, Transform, Quaternion
 from std_msgs.msg import Bool
 import tf.transformations 
 
@@ -52,7 +56,7 @@ def read_static_marker(m):
     return trans, rot, Found
 
 def broadcast_odom(m):
-    global t, old
+    global t, old, filter
 
     marker_pose = PoseStamped()
     marker_pose.header = m.header
@@ -93,6 +97,10 @@ def broadcast_odom(m):
      t.transform.rotation.y,
      t.transform.rotation.z,
      t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,0,angles[2])
+
+    filter.predict()
+    filter.Kgain()
+    t = filter.update(t)
     
     old = t
     broadcaster.sendTransform(t)
@@ -105,11 +113,15 @@ def broadcast_odom(m):
     pub.publish(msg)
 
 
+
 rospy.init_node('marker_detection')
-global broadcaster, pub
+global broadcaster, pub, filter
+
 marker = None 
 t = None
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+
+filter = Kalman()
 
 tf_buf = tf2_ros.Buffer() 
 tf_lstn = tf2_ros.TransformListener(tf_buf)
@@ -178,3 +190,69 @@ def matrixToPose(T):
 
     angles = tf.transformations.euler_from_quaternion(quat)
     """
+
+
+
+"""
+def KFfilter(msg):
+    print("filtering")
+    #https://scipy-cookbook.readthedocs.io/items/KalmanFiltering.html
+"""
+    
+    # xbar = A*x
+    # Pbar = A*P*A^T+Q
+    # KG = Pbar*C^T/(C*Pbar*C^T+R)
+    # x = xbar + KG(Z-C*xbar)
+    # P = (I-KG*C)*Pbar 
+
+    # x = prior estimate, mean 
+    # P = covariance of estimate
+    # A = state matrix, identity 
+    # Q = process noise
+    # R = measurment noise
+    # Z = measurement
+    
+    
+"""
+    global init
+
+    if init:
+        init = False
+        # inital guess
+        x = [0,0,0,0,0,0,1] # start in origo looking in x direction
+        A = np.identity(len(x)) # constant
+        C = np.ones(len(x)) # constant
+        I = np.identity(len(x)) # identity matrix
+
+        P = I # calc every loop
+        Q = I # set ourself
+        R = np.ones(len(x)) # set ourself
+    
+    # predict
+    xbar = np.dot(A,x)    
+    Pbar = np.dot(A,np.dot(P,np.transpose(A))) + Q
+ 
+    # calc kalman 
+    KG = np.dot(Pbar,np.dot(C,np.linalg.inv((np.dot(C,np.dot(P,np.transpose(C)))+R))))
+
+    # update
+    (xt,yt,zt) = msg.transform.translation
+    (rx,ry,rz,rw) = msg.transform.rotation
+    Z = np.array([xt,yt,zt,rx,ry,rz,rw])
+
+    x = x + np.dot(KG,(Z-np.dot(C,x)))
+    P = np.dot((I-np.dot(KG,C)),Pbar)
+
+    #insert filtered posistion in message
+
+    msg.transform.translation.x = x[0]
+    msg.transform.translation.y = x[1]
+    msg.transform.translation.z = x[2]
+    msg.transform.rotation.x = x[3]
+    msg.transform.rotation.y = x[4]
+    msg.transform.rotation.z = x[5]
+    msg.transform.rotation.w = x[6]
+
+    return msg
+
+"""
