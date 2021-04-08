@@ -110,6 +110,14 @@ def pose_callback(msg):
     global drone_pose_map
     drone_pose_map = trans2Map(msg)
 
+    # keep drone flying even if statemachine waits for path planning
+    # this callback is called anyways
+    global current_waypoint
+    global current_waypoint_index
+    global drone_mode
+    if drone_mode == 0 and current_waypoint_index != -1:
+        publish_pos_cmd(current_waypoint)
+
 def intruder_callback(msg):
     global intruder_found
     intruder_found = msg.data
@@ -135,10 +143,21 @@ path_pub = rospy.Publisher('/path_pub', Path, queue_size=10)
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 
+global current_waypoint
+global current_waypoint_index
+global drone_mode
+
+current_waypoint_index = -1
+current_waypoint = PoseStamped()
+drone_mode = 0 # drone control mode, 0=position, 1=velocity
+
 def main(argv=sys.argv):
     global drone_pose_map
     global intruder_found
     global is_localized
+    global current_waypoint
+    global current_waypoint_index
+    global drone_mode
 
     rate = rospy.Rate(10)
 
@@ -150,7 +169,6 @@ def main(argv=sys.argv):
     is_localized = True
     done = False
     
-    drone_mode = 0 # drone control mode, 0=position, 1=velocity
 
     while not rospy.is_shutdown():
 
@@ -256,14 +274,14 @@ def main(argv=sys.argv):
 
             # check if waypoint reached
             distance_to_goal, yaw_dist = check_distance_to_goal(drone_pose_map, current_waypoint)
-            print("distance, yaw_dist: ", distance_to_goal, yaw_dist)
+            # print("distance, yaw_dist: ", distance_to_goal, yaw_dist)
 
             if distance_to_goal < 0.15 and yaw_dist < 20:
                 # move to next setpont or start new exploration goal
                 if current_waypoint_index < len(path.poses) - 1:
                     current_waypoint_index += 1 
                 else:
-                    state = 50
+                    state = 20
                     # explore point
                     rospy.wait_for_service('explorer_explore_point')
                     explorer_srv = rospy.ServiceProxy('explorer_explore_point', ExplorePoint)
