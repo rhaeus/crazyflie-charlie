@@ -1,2 +1,3 @@
 ---
 geometry_msgs/PoseStamped next_goal
+std_msgs/Bool is_safe_zone

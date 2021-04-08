@@ -12,6 +12,7 @@ from tf.transformations import quaternion_from_euler, euler_from_quaternion, qua
 
 from grid_map import GridMap
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Bool
 
 global map_file_path
 global map_resolution
@@ -40,6 +41,8 @@ def explore_req_goal(req):
     global safe_spot_index
     global state
 
+    is_safe_zone = False
+
     goal = PoseStamped()
     goal.header.frame_id = 'map'
 
@@ -56,6 +59,7 @@ def explore_req_goal(req):
         if safe_spot_index >= len(safe_spots):
             safe_spot_index = 0
         state = 1
+        is_safe_zone = True
 
     elif state == 1: # random position
         # sample 10 random points in map space and pick the one with highest score for new explored space
@@ -75,10 +79,15 @@ def explore_req_goal(req):
         goal.pose.orientation.z,
         goal.pose.orientation.w) = quaternion_from_euler(0,0,0)
 
+        is_safe_zone = False
+
         state = 0
 
+    safe = Bool()
+    safe.data = is_safe_zone
+
         
-    return ExploreReqGoalResponse(goal)
+    return ExploreReqGoalResponse(goal, safe)
 
 def explore_point(req):
     global explore_radius
