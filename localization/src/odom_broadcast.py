@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-from os import initgroups
 import sys 
 import json 
 import numpy as np
-from numpy.core.numeric import ones
-from numpy.ma.core import dot
 import tf2_geometry_msgs
 
 from kalmanfilter import Kalman
@@ -24,7 +21,6 @@ def marker_callback(msg):
     for marker in msg.markers:
         broadcast_odom(marker)
         trans_to_map(marker)
-
 
 
 def trans_to_map(m):
@@ -121,7 +117,7 @@ def broadcast_odom(m):
 
 
 rospy.init_node('marker_detection')
-global broadcaster, pub, initgroups
+global broadcaster, pub, init
 
 init = True
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from numpy.lib.twodim_base import diag
 import rospy
 import numpy as np
 from aruco_msgs.msg import MarkerArray
