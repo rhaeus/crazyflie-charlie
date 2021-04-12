@@ -5,11 +5,13 @@ import json
 import numpy as np
 import tf2_geometry_msgs
 
+from kalmanfilter import Kalman
+
 import math
 import rospy
 import tf2_ros
 from aruco_msgs.msg import MarkerArray
-from geometry_msgs.msg import TransformStamped, PoseStamped, Transform
+from geometry_msgs.msg import TransformStamped, PoseStamped, Transform, Quaternion
 from std_msgs.msg import Bool
 import tf.transformations 
 
@@ -19,7 +21,6 @@ def marker_callback(msg):
     for marker in msg.markers:
         broadcast_odom(marker)
         trans_to_map(marker)
-
 
 
 def trans_to_map(m):
@@ -52,7 +53,7 @@ def read_static_marker(m):
     return trans, rot, Found
 
 def broadcast_odom(m):
-    global t, old
+    global t, old, init, filter
 
     marker_pose = PoseStamped()
     marker_pose.header = m.header
@@ -93,6 +94,15 @@ def broadcast_odom(m):
      t.transform.rotation.y,
      t.transform.rotation.z,
      t.transform.rotation.w) =tf.transformations.quaternion_from_euler(0,0,angles[2])
+
+
+    if init:
+        filter = Kalman(xcord = [m_T_o[0,3],m_T_o[1,3],angles[2]])
+        init = False
+    else:
+        filter.predict()
+        filter.Kgain()
+        t = filter.update(t)
     
     old = t
     broadcaster.sendTransform(t)
@@ -105,11 +115,16 @@ def broadcast_odom(m):
     pub.publish(msg)
 
 
+
 rospy.init_node('marker_detection')
-global broadcaster, pub
+global broadcaster, pub, init
+
+init = True
+
 marker = None 
 t = None
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+
 
 tf_buf = tf2_ros.Buffer() 
 tf_lstn = tf2_ros.TransformListener(tf_buf)
@@ -178,3 +193,4 @@ def matrixToPose(T):
 
     angles = tf.transformations.euler_from_quaternion(quat)
     """
+
