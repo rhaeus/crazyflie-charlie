@@ -17,11 +17,16 @@ from std_msgs.msg import Bool
 import tf.transformations 
 
 
+def safezone_callback(msg):
+    global safezone 
+    safezone = msg.data
+
 def marker_callback(msg):
-    global marker
-    for marker in msg.markers:
-        broadcast_odom(marker)
-        trans_to_map(marker)
+    global marker, safezone
+    if safezone:
+        for marker in msg.markers:
+            broadcast_odom(marker)
+            trans_to_map(marker)
 
 # Broadcast a transform between map and a detected aruco marker
 def trans_to_map(m):
@@ -216,16 +221,18 @@ def broadcast_odom(m):
 
 
 rospy.init_node('marker_detection')
-global broadcaster, pub, init
+global broadcaster, pub, init, safezone
 
 init = True
 
-marker = None 
+marker = None
+safezone = False  
 t = None
 tf_buf = tf2_ros.Buffer() 
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 broadcaster = tf2_ros.TransformBroadcaster()
 pub = rospy.Publisher('/is_localized', Bool, queue_size=10)
+sub_safezone = rospy.Subscriber('/cf1/safe_zone', Bool, safezone_callback)
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 
 def main(argv=sys.argv):
