@@ -188,7 +188,6 @@ class Brain:
                     print("liftoff")
 
             if state == 5: #wait for liftoff
-                # self.current_waypoint.header.stamp = rospy.Time.now()
                 self.publish_pos_cmd(self.current_waypoint)
                 if abs(self.drone_pose_map.pose.position.z - 0.4) < 0.05:
                     state =  10
@@ -327,7 +326,23 @@ class Brain:
                     self.drone_mode = 0
                     self.current_waypoint = self.drone_pose_map
                     self.current_waypoint_index = 0
+                    state = 70
+
+            if state == 70: # wait in safe spot
+                # loop runs with 10hz = 10times/s -> one run takes 1/10s
+                # we want to wait 3s in safe zone
+                # therefore safe_count must be 30
+                safe_count = 30
+                self.pub_safe_zone.publish(True)
+                state = 75
+                print("waiting in safe zone...")
+            
+            if state == 75:
+                safe_count -= 1
+                if safe_count <= 0:
+                    self.pub_safe_zone.publish(False)
                     state = 20
+                    print("waiting done, go to state 20")
 
             if state == 100: # intruder found
                 print("=================================")
