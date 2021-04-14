@@ -462,10 +462,11 @@ class SignPoseEstimation:
                 (p.orientation.x,
                 p.orientation.y,
                 p.orientation.z,
-                p.orientation.w) = quaternion_from_euler(math.radians(-90.0), 0.0, math.radians(-90.0))
-                #p.orientation.w) = quaternion_from_euler(math.radians(rotation_vector[0]),
-                #                                            math.radians(rotation_vector[1]),
-                #                                            math.radians(rotation_vector[2]))
+                p.orientation.w) = quaternion_from_euler(math.radians(rotation_vector[0]-90),
+                                                           math.radians(rotation_vector[1]),
+                                                           math.radians(rotation_vector[2]-90))
+
+                #p.orientation.w) = quaternion_from_euler(math.radians(-90.0), 0.0, math.radians(-90.0))
 
                 # create SignMarker 
                 sign_marker = SignMarker()
