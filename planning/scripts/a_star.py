@@ -20,8 +20,9 @@ class AStar:
         start_node = Node(start_index)
         end_node = Node(end_index)
 
-        if not self.check_location(start_node) or not self.check_location(end_node):
-            print("[A*] start or end location is not free")
+        # if not self.check_location(start_node) or not self.check_location(end_node):
+        if not self.check_location(end_node):
+            print("[A*] end location is not free")
             return []
 
         open_list = dict()
