@@ -35,8 +35,8 @@ def send_transform_from_marker(m):
     t.child_frame_id = '/sign/detected' + str(m.id)
 
     # marker pose is in frame camera_link
-    if not tf_buf.can_transform('map', m.header.frame_id, m.header.stamp, rospy.Duration(5)):
-        rospy.logwarn('No transform from %s to map', m.header.frame_id)
+    if not tf_buf.can_transform('map', m.header.frame_id, m.header.stamp, rospy.Duration(1)):
+        rospy.logwarn('[display_sign_pose_estimation] No transform from %s to map', m.header.frame_id)
         return
 
     marker_map = tf_buf.transform(marker, 'map')
@@ -55,9 +55,9 @@ def send_transform_from_marker(m):
 
 
 rospy.init_node('display_sign_pose_estimation')
-sub_marker = rospy.Subscriber('/cf1/sign_detection/pose_estimation', SignMarkerArray, marker_callback)
+sub_marker = rospy.Subscriber('/cf1/sign_detection/pose_estimation', SignMarkerArray, marker_callback, queue_size = 1, buff_size=2**24)
 
-pub_pose_map = rospy.Publisher('/cf1/sign_detection/pose_estimation_map', PoseStamped, queue_size=2)
+pub_pose_map = rospy.Publisher('/cf1/sign_detection/pose_estimation_map', PoseStamped, queue_size = 10)
 tf_buf   = tf2_ros.Buffer()
 tf_lstn  = tf2_ros.TransformListener(tf_buf)
 

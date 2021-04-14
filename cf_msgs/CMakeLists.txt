@@ -63,7 +63,8 @@ add_message_files(
  add_service_files(
    FILES
    DronePath.srv
-
+   ExploreReqGoal.srv
+   ExplorePoint.srv
 )
 
 ## Generate actions in the 'action' folder

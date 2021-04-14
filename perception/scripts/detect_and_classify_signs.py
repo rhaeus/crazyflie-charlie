@@ -17,17 +17,18 @@ from dd2419_detector_baseline.image_processor import ImageProcessor
 
 import convert_msgs
 
-
 class DetectAndClassifySigns:
 
   def __init__(self):
     # get parameters from parameter server
     model_path = rospy.get_param('~model_path')
     ann_path = rospy.get_param('~annotation_path')
+
+    self.bbx_dist_thres = rospy.get_param('~bbx_dist_thres', 100)
     self.confidence_thres = rospy.get_param('~confidence_thres', 0.5)
 
     self.image_sub = rospy.Subscriber("/cf1/camera/image_raw", Image, self.callback, queue_size = 1, buff_size=2**24)
-    self.result_pub = rospy.Publisher("/cf1/sign_detection/result", DetectionResult, queue_size=10)
+    self.result_pub = rospy.Publisher("/cf1/sign_detection/result", DetectionResult, queue_size = 10)
 
     self.bridge = CvBridge()
     self.image_processor = ImageProcessor(model_path, ann_path)
@@ -49,7 +50,8 @@ class DetectAndClassifySigns:
     # use detector to detect and classify
     bbs = self.image_processor.detect_and_classify(pil_image, self.confidence_thres)
 
-    # print("hello")
+    # filter multiple responses per sign
+    bbs = self.image_processor.reduce_bbx_nb(bbs, self.bbx_dist_thres)
 
     
     labels = []
