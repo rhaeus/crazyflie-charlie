@@ -76,7 +76,7 @@ class SignPoseEstimation:
             image = cv.imread(file_path)
             height, width, channels = image.shape 
 
-            boundaries = [([17, 15, 50], [90, 80, 255])]
+            boundaries = [([0, 0, 0], [200, 200, 255])]
             for (lower, upper) in boundaries:
 	            # create NumPy arrays from the boundaries
 	            lower = np.array(lower, dtype = "uint8")
@@ -85,16 +85,24 @@ class SignPoseEstimation:
 	            # the mask
 	            mask = cv.inRange(image, lower, upper)
 	            image = cv.bitwise_and(image, image, mask = mask)
-            contours,hier = self.get_contours(image)
+            contours,hier, _ = self.get_contours(image)
+            
             #print(hier, 'hier')
             if len(contours)>0 and info['shape']=='round':
                 cont = np.vstack(ctr for ctr in contours)
                 # for i, ctr in enumerate(cont) :
                 #     cv.drawContours(image, cont, i, (0, 255, 0), 3)
-                (x,y),radius = cv.minEnclosingCircle(cont)
-                center = (int(x),int(y))
-                radius = int(radius)
-                image = cv.circle(image,center,radius,(0,255,0),2)
+
+                #circular
+                # (x,y),radius = cv.minEnclosingCircle(cont)
+                # center = (int(x),int(y))
+                # radius = int(radius)
+                # image = cv.circle(image,center,radius,(0,255,0),2)
+
+                #rectangular
+                x,y,w,h = cv.boundingRect(cont)
+                image = cv.rectangle(image,(x,y),(x+w,y+h),(0,255,255),2)
+
                 # ellipse = cv.fitEllipse(cont)
                 # image = cv.ellipse(image,ellipse,(0,255,0),2)
             # for i, ctr in enumerate(contours) :
@@ -102,16 +110,71 @@ class SignPoseEstimation:
             #     cv.drawContours(image, contours, i, (0, 255, 0), 3)
             if len(contours)>0 and info['shape']=='triangle':
                 cont = np.vstack(ctr for ctr in contours)
-                hull = cv.convexHull(cont)
+
+                #circular
+                (x,y),radius = cv.minEnclosingCircle(cont)
+                center = (int(x),int(y))
+                radius = int(radius)
+                image = cv.circle(image,center,radius,(0,255,0),2)
+                #print(cont)
+
+                #triangular --not good--
+                #hull = cv.convexHull(cont)
+                #cv.drawContours(image,cont, -1, (0, 255, 0),3)
+                #hull = cv.convexHull(cont)
 
             info["width"] = width
             info["height"] = height
-            info["image"] = image
 
             real_width = info["real_width"]
             real_height = info["real_height"]
 
-            if info["shape"]=='round':
+            if len(contours)>0 and info["shape"]=='round':
+
+                #circular
+                # x = x * (real_width/width)
+                # y = y * (real_height/height)
+                # radius = radius * (real_height/height)
+                # info['object_points'] = np.array([[x, y + radius,0.0],
+                #                     [x+radius, y, 0.0],
+                #                     [x, y-radius, 0.0],
+                #                     [x-radius, y, 0.0]], dtype=np.float64)
+
+                #rectangular
+                x = x * (real_width/width)
+                y = y * (real_height/height)
+                w = w * (real_width/width)
+                h = h * (real_height/height)
+
+                top = (x + w/2, y)
+                bottom = (x + w/2, y + h)
+
+                right = (x, y + h/2)
+                left = (x + w, y + h/2)
+                info['object_points'] = np.array([[top[0], top[1],0.0],[right[0], right[1], 0.0],[bottom[0], bottom[1], 0.0],[left[0], left[1], 0.0]], dtype=np.float64)
+
+            elif len(contours)>0 and info["shape"]=='triangle':
+                # leftmost = tuple(cont[cont[:,:,0].argmin()][0])
+                # rightmost = tuple(cont[cont[:,:,0].argmax()][0])
+                # topmost = tuple(cont[cont[:,:,1].argmin()][0])
+                # #middle = (leftmost[0]+rightmost[0]/2, leftmost[1]+rightmost[1]/2)
+
+                # leftx = leftmost[0]*(real_width/width)
+                # lefty = leftmost[1]*(real_height/height)
+                # rightx = rightmost[0]*(real_width/width)
+                # righty = rightmost[1]*(real_height/height)
+                # topx = topmost[0]*(real_width/width)
+                # topy = topmost[1]*(real_height/height)
+                # middlex = (leftx + rightx)/2
+                # middley = (lefty + righty)/2
+
+                # object_points = np.array([[leftx,lefty, 0], [topx,topy, 0], [rightx,righty, 0], [middlex, middley, 0]], dtype=np.float64)
+                # info['object_points']= object_points
+
+                # triangle_points = np.array([[[leftmost[0],leftmost[1]]], [[topmost[0],topmost[1]]], [[rightmost[0],rightmost[1]]], [[middlex*(width/real_width),middley*(height/real_height)]]], dtype=np.int32)
+                # cv.drawContours(image,triangle_points, -1, (0, 255, 255),3)
+                # print(object_points, info['name'])
+
                 x = x * (real_width/width)
                 y = y * (real_height/height)
                 radius = radius * (real_height/height)
@@ -119,29 +182,15 @@ class SignPoseEstimation:
                                     [x+radius, y, 0.0],
                                     [x, y-radius, 0.0],
                                     [x-radius, y, 0.0]], dtype=np.float64)
-            elif info["shape"]=='triangle':
-                leftmost = tuple(hull[hull[:,:,0].argmin()][0])
-                rightmost = tuple(hull[hull[:,:,0].argmax()][0])
-                topmost = tuple(hull[hull[:,:,1].argmin()][0])
-                #middle = (leftmost[0]+rightmost[0]/2, leftmost[1]+rightmost[1]/2)
-
-                leftx = leftmost[0]*(real_width/width)
-                lefty = leftmost[1]*(real_height/height)
-                rightx = rightmost[0]*(real_width/width)
-                righty = rightmost[1]*(real_height/height)
-                topx = topmost[0]*(real_width/width)
-                topy = topmost[1]*(real_height/height)
-                middlex = (leftx + rightx)/2
-                middley = (lefty + righty)/2
-
-                object_points = np.array([[leftx,lefty, 0], [topx,topy, 0], [rightx,righty, 0], [middlex, middley, 0]], dtype=np.float64)
-                info['object_points']= object_points
 
             else :
                 info["object_points"] = np.array([[-real_width/2.0, real_height/2.0, 0], 
                                     [real_width/2.0, real_height/2.0, 0], 
                                     [real_width/2.0, -real_height/2.0, 0],
                                     [-real_width/2.0, -real_height/2.0, 0]],dtype=np.float64)
+
+            
+            info["image"] = image
 
 
     def compute_mask(self, image, bbx):
@@ -165,8 +214,7 @@ class SignPoseEstimation:
 
     def get_contours(self, image):
         imgray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        ret, thresh = cv.threshold(imgray, 100, 255, 0)
-        #60
+        ret, thresh = cv.threshold(imgray, 60, 255, 0)
         
         # roi = image[(bb["x"]):(bb["x"]+bb["width"]),(bb["y"]):(bb["y"] + bb["height"])]
         # black = np.zeros((image.shape[0], image.shape[1], 3), np.uint8)
@@ -177,11 +225,11 @@ class SignPoseEstimation:
         # fin = cv.bitwise_and(roi,roi,mask = b_mask)
 
 
-        _, ctr, hier = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        _, ctr, hier = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
         #print('hier', hier)
         #print('contour', ctr)
 
-        return (ctr,hier)
+        return (ctr,hier, thresh)
 
     def callback(self, detection_result):
         image = detection_result.image
@@ -199,7 +247,7 @@ class SignPoseEstimation:
 
 
         #color boundaries we are looking for
-        boundaries = [([17, 15, 40], [90, 90, 255])]
+        boundaries = [([20, 20, 30], [100, 100, 255])]
         for (lower, upper) in boundaries:
 	        # create NumPy arrays from the boundaries
 	        lower = np.array(lower, dtype = "uint8")
@@ -208,6 +256,10 @@ class SignPoseEstimation:
 	        # the mask
 	        mask = cv.inRange(cv_image, lower, upper)
 	        output = cv.bitwise_and(cv_image, cv_image, mask = mask)
+
+
+
+
         #imgray = cv.cvtColor(output, cv.COLOR_BGR2GRAY)
         #ret, thresh = cv.threshold(imgray, 90, 255, 0)
 
@@ -221,8 +273,10 @@ class SignPoseEstimation:
         ret,b_mask = cv.threshold(gray,127,255, 0)
         output_n = cv.bitwise_and(output, output,mask = b_mask)
 
-        
+        print('bbs', bbs)
+        masks = []
         for bb in bbs:
+            print(bb['category'])
             # match features with reference image
             cat = bb["category"]
             ref = self.ref_dict[cat]
@@ -233,47 +287,92 @@ class SignPoseEstimation:
             object_points = ref["object_points"]
             image_points = [[]]
 
-
-            # compute mask to only look within bbox
+            #if self.ref_dict[int(bb['category'])]['shape']=='triangle':
+                # compute mask to only look within bbox
             maski = self.compute_mask(output, bb)
+                #masks.append(maski)
+                #for i in range(len(masks)):
             output_n = cv.bitwise_and(output, output, mask = maski)
 
             #imgray = cv.cvtColor(output, cv.COLOR_BGR2GRAY)
             #ret, thresh = cv.threshold(imgray, 90, 255, 0)
         
         #get contours
-            contours,hier = self.get_contours(output_n)
+            contours,hier, _ = self.get_contours(output_n)
+            #print('contours', contours)
 
             
             #cv.drawContours(output_n, contours, -1, (0,255,0),3)
 
             if len(contours)>0 and self.ref_dict[int(bb['category'])]['shape']=='triangle':
+                #print(contours)
                 cont = np.vstack(ctr for ctr in contours)
-                hull = cv.convexHull(cont)
-                leftmost = tuple(hull[hull[:,:,0].argmin()][0])
-                #print(leftmost, 'leftmost')
-                rightmost = tuple(hull[hull[:,:,0].argmax()][0])
-                topmost = tuple(hull[hull[:,:,1].argmin()][0])
-                middle = (leftmost[0]+rightmost[0]/2, leftmost[1]+rightmost[1]/2)
-
-                image_points = np.array([leftmost, topmost, rightmost, middle], dtype=np.float64)
-                
-                #cv.drawContours(output_n, cont, 0, (0, 255, 0), 3)
-                
-
-            if len(contours)>0 and self.ref_dict[int(bb['category'])]['shape']=='round':
-                cont = np.vstack(ctr for ctr in contours)
-                #ellipse fitting
-                # ellipse = cv.fitEllipse(cont)
-                # #print(ellipse)
-                # output_n = cv.ellipse(output_n,ellipse,(0,255,0),2)
-
+                cv.drawContours(output_n, cont, -1, (0, 255, 255), 3)
                 #circle fitting
                 (x,y),radius = cv.minEnclosingCircle(cont)
                 center = (int(x),int(y))
                 radius = int(radius)
                 if radius>20:
                     output_n = cv.circle(output_n,center,radius,(0,255,0),2)
+
+                    top = (x, y + radius)
+                    bottom = (x, y - radius)
+
+                    right = (x + radius, y)
+                    left = (x - radius, y)
+                    #print(bb['category'])
+                    
+
+                    image_points = np.array([top, right, bottom, left],dtype=np.float64)
+
+                # cont = np.vstack(ctr for ctr in contours)
+                # epsilon = 0.3*cv.arcLength(cont,True)
+                # approx = cv.approxPolyDP(cont,epsilon,True)
+                # hull = cv.convexHull(cont)
+                # leftmost = tuple(cont[cont[:,:,0].argmin()][0])
+                # #print(leftmost, 'leftmost')
+                # rightmost = tuple(cont[cont[:,:,0].argmax()][0])
+                # topmost = tuple(cont[cont[:,:,1].argmin()][0])
+                # middle = ((leftmost[0]+rightmost[0])/2, (leftmost[1]+rightmost[1])/2)
+
+                # image_points = np.array([leftmost, topmost, rightmost, middle], dtype=np.float64)
+                # print(image_points)
+                # #hull = cv.convexHull(image_points)
+                # triangle_cont = np.array([[[leftmost[0], leftmost[1]]],[[topmost[0], topmost[1]]],[[rightmost[0], rightmost[1]]]], dtype=np.int32)
+                
+                # cv.drawContours(output_n, triangle_cont, -1, (0, 255, 255), 3)
+
+
+
+                # # # Publish the image
+                # try:
+                # #   self.image_pub.publish(self.bridge.cv2_to_imgmsg(closing, "passthrough"))
+                #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(self.ref_dict[int(bb['category'])]['image'], "8UC3"))
+                # except CvBridgeError as e:
+                #     print(e)
+                
+
+
+
+
+
+
+            if len(contours)>0 and self.ref_dict[int(bb['category'])]['shape']=='round':
+                cont = np.vstack(ctr for ctr in contours)
+                cv.drawContours(output_n, cont, -1, (0, 255, 0), 3)
+                #ellipse fitting
+                # ellipse = cv.fitEllipse(cont)
+                # print(ellipse)
+                # output_n = cv.ellipse(output_n,ellipse,(0,255,0),2)
+
+                x,y,w,h = cv.boundingRect(cont)
+                output_n = cv.rectangle(output_n,(x,y),(x+w,y+h),(0,255,255),2)
+
+                #circle fitting
+                # (x,y),radius = cv.minEnclosingCircle(cont)
+                # center = (int(x),int(y))
+                # radius = int(radius)
+                
 
         #for i, ctr in enumerate(contours) :
             #if hier[0][i][-1]==-1:
@@ -285,16 +384,37 @@ class SignPoseEstimation:
                 #cv.drawContours(output_n, contours, i, (0, 255, 0), 3)
 
                 
+                #circular
+                #if radius>20:
+                #     output_n = cv.circle(output_n,center,radius,(0,255,0),2)
+                    # top = (x, y + radius)
+                    # bottom = (x, y - radius)
 
-                    top = (x, y + radius)
-                    bottom = (x, y - radius)
+                    # right = (x + radius, y)
+                    # left = (x - radius, y)
+                    # #print(bb['category'])
 
-                    right = (x + radius, y)
-                    left = (x - radius, y)
-                    #print(bb['category'])
-                    print(left, 'left')
+                    #rectangular
+                if h>20:
+                    top = (x + w/2, y)
+                    bottom = (x + w/2, y + h)
+
+                    right = (x, y + h/2)
+                    left = (x + w, y + h/2)
+                    
 
                     image_points = np.array([top, right, bottom, left],dtype=np.float64)
+
+
+
+                # # Publish the image
+                # try:
+                # #   self.image_pub.publish(self.bridge.cv2_to_imgmsg(closing, "passthrough"))
+                #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(self.ref_dict[int(bb['category'])]['image'], "8UC3"))
+                # except CvBridgeError as e:
+                #     print(e)
+
+
 
             # else :
 
@@ -307,14 +427,25 @@ class SignPoseEstimation:
 
             #     image_points = np.array([[top_left_corner], [top_right_corner], [bottom_right_corner], [bottom_left_corner]],dtype=np.float64)
             
-            # Publish the image
+
+
+
+
+
+
+
+
+
+
+            # # Publish the image
             try:
             #   self.image_pub.publish(self.bridge.cv2_to_imgmsg(closing, "passthrough"))
                 self.image_pub.publish(self.bridge.cv2_to_imgmsg(output_n, "8UC3"))
             except CvBridgeError as e:
-                print(e) 
-            print("obj", object_points)
-            print('im', image_points)
+                print(e)
+
+            #print("obj", object_points)
+            #print('im', image_points)
             if image_points != [[]]:
                 # use cv2.solvePnP for pose estimation
                 (_, rotation_vector, translation_vector) = cv.solvePnP(
@@ -348,6 +479,11 @@ class SignPoseEstimation:
                 # add SignMarker to SignMarkerArray
                 sign_marker_array.markers.append(sign_marker)
 
+        # try:
+        #     #   self.image_pub.publish(self.bridge.cv2_to_imgmsg(closing, "passthrough"))
+        #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(output_n, "8UC3"))
+        # except CvBridgeError as e:
+        #     print(e) 
 
         # publish SignMArkerArray
         self.pose_pub.publish(sign_marker_array)
