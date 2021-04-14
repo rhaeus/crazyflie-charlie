@@ -25,13 +25,25 @@ def plan_path(req):
     global map_resolution
     global inflation_radius
 
+    path = Path()
+    path.header.stamp = rospy.Time.now()
+    path.header.frame_id = 'map'
+    path.header.seq = 0
+
     grid_map = GridMap(map_file_path, map_resolution, inflation_radius) 
 
     start_pose, goal_pose = req.start, req.goal
-    # TODO: check if inside space, return empty path if not
-    start_index = grid_map.coord_to_grid_index((start_pose.pose.position.x, start_pose.pose.position.y))
+
+    start_coord = (start_pose.pose.position.x, start_pose.pose.position.y) 
+    goal_coord = (goal_pose.pose.position.x, goal_pose.pose.position.y)
+
+    if not grid_map.is_coord_in_range(start_coord) or not grid_map.is_coord_in_range(goal_coord):
+        print("[path_server][pal_path] start or goal out of range. No path generated.")
+        return DronePathResponse(path)
+
+    start_index = grid_map.coord_to_grid_index(start_coord)
     # print("start_index: ", start_index)
-    goal_index = grid_map.coord_to_grid_index((goal_pose.pose.position.x, goal_pose.pose.position.y))
+    goal_index = grid_map.coord_to_grid_index(goal_coord)
     # print("goal_index: ", goal_index)
 
     astar = AStar(grid_map)
@@ -52,10 +64,6 @@ def plan_path(req):
 
     print("planning done!")
 
-    path = Path()
-    path.header.stamp = rospy.Time.now()
-    path.header.frame_id = 'map'
-    path.header.seq = 0
     for i in range(len(path_indices)-1): # add all except last index because we want to use goal orientation for that one
         p = PoseStamped()
         p.header.stamp = rospy.Time.now()
