@@ -56,18 +56,19 @@ class Brain:
 
     def trans2Map(self, msg):
         # marker pose is in frame camera_link
-        if not self.tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp, rospy.Duration(0.2)):
+        if not self.tf_buf.can_transform('map', msg.header.frame_id, msg.header.stamp, rospy.Duration(1)):
             rospy.logwarn('[brain][trans2Map] No transform from %s to map', msg.header.frame_id)
             return
         return self.tf_buf.transform(msg, 'map')
 
     def publish_pos_cmd(self, goal):
         # Need to tell TF that the goal was just generated
+        goal.header.stamp = rospy.Time(0)
         # goal.header.stamp = rospy.Time.now()
 
         # goal is in map frame
         # drone expects goal pose in odom frame
-        if not self.tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(0.2)):
+        if not self.tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(1)):
             rospy.logwarn('[brain][publish_pos_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
             return
 
@@ -75,7 +76,7 @@ class Brain:
 
         cmd = Position()
 
-        cmd.header.stamp = rospy.Time.now()
+        cmd.header.stamp = goal_odom.header.stamp
         cmd.header.frame_id = goal_odom.header.frame_id
 
         cmd.x = goal_odom.pose.position.x
@@ -93,18 +94,19 @@ class Brain:
 
     def publish_vel_cmd(self, goal, vx, vy, vyaw):
         # Need to tell TF that the goal was just generated
-        goal.header.stamp = rospy.Time.now()
+        goal.header.stamp = rospy.Time(0)
+        # goal.header.stamp = rospy.Time.now()
 
         # goal is in map frame
         # drone expects goal pose in odom frame
-        if not self.tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(0.2)):
+        if not self.tf_buf.can_transform('cf1/odom', goal.header.frame_id, goal.header.stamp, rospy.Duration(1)):
             rospy.logwarn('[brain][publish_pos_cmd] No transform from %s to cf1/odom' % goal.header.frame_id)
             return
 
         goal_odom = self.tf_buf.transform(goal, 'cf1/odom')
 
         cmd = Hover()
-        cmd.header.stamp = rospy.Time.now()
+        cmd.header.stamp = goal_odom.header.stamp
         cmd.header.frame_id = goal_odom.header.frame_id
         cmd.vx = vx
         cmd.vy = vy
@@ -166,7 +168,7 @@ class Brain:
             if self.drone_mode == 0 and self.current_waypoint_index != -1:
                 self.publish_pos_cmd(self.current_waypoint)
 
-            # check if intruder is found
+            # # check if intruder is found
             if not done and self.intruder_found: 
                 self.drone_mode = 0
                 self.current_waypoint_index = 0
@@ -186,9 +188,10 @@ class Brain:
                     print("liftoff")
 
             if state == 5: #wait for liftoff
+                # self.current_waypoint.header.stamp = rospy.Time.now()
                 self.publish_pos_cmd(self.current_waypoint)
                 if abs(self.drone_pose_map.pose.position.z - 0.4) < 0.05:
-                    state = 10
+                    state =  10
                     print("startup done, go to state 10")
 
             if state == 10: # localize
