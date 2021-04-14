@@ -11,8 +11,7 @@
     "markers": [
       {"id": 1, "pose": {"position": [0.28, 0.0, 0.4], "orientation": [0, -90.0, 0.0]}},
       {"id": 2, "pose": {"position": [2.2, 0.89, 0.4],  "orientation": [0.0, -90.0, 90.0]}},
-      {"id": 3, "pose": {"position": [0.0, 0.8, 0.4],  "orientation": [-90.0, -90.0, 0.0]}},
-      {"id": 4, "pose": {"position": [1.19, 1.6, 0.4],  "orientation": [90.0, -90.0, 0.0]}}
+      {"id": 3, "pose": {"position": [0.0, 0.8, 0.4],  "orientation": [-90.0, -90.0, 0.0]}}
     ],
   
     "gates": [
