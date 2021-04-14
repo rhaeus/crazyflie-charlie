@@ -3,13 +3,15 @@
 <launch>
       <arg name="map_name" default="ramona"/>
       <arg name="map_resolution" default="0.05"/>
-      <arg name="inflation_radius" default="0.1"/>
+      <arg name="inflation_radius" default="0.2"/>
+      <arg name="explore_radius" default="0.25"/>
+      <arg name="safe_spot_offset" default="0.30"/>
 
-      <node pkg="planning" type="grid_map_publisher.py" name="grid_map_publisher" output="screen">
+      <!-- <node pkg="planning" type="grid_map_publisher.py" name="grid_map_publisher" output="screen">
       <param name="map_file_path" value="$(find maps)/$(arg map_name).world.json"/> 
       <param name="map_resolution" value="$(arg map_resolution)"/> 
       <param name="inflation_radius" value="$(arg inflation_radius)"/> 
-      </node>
+      </node> -->
 
       <node pkg="planning" type="path_server.py" name="path_server" output="screen">
       <param name="map_file_path" value="$(find maps)/$(arg map_name).world.json"/> 
@@ -21,5 +23,7 @@
       <param name="map_file_path" value="$(find maps)/$(arg map_name).world.json"/> 
       <param name="map_resolution" value="$(arg map_resolution)"/> 
       <param name="inflation_radius" value="$(arg inflation_radius)"/> 
+      <param name="explore_radius" value="$(arg explore_radius)"/> 
+      <param name="safe_spot_offset" value="$(arg safe_spot_offset)"/> 
       </node>
 </launch>
