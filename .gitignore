@@ -6,3 +6,4 @@ own_packages/
 flight_camp_assignment/
 *.pyc
 create_grid.py
+localization/src/map_odom.py

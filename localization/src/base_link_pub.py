@@ -69,13 +69,11 @@ def callback(m):
 
 
 rospy.init_node('base_link_pub')
-sub_marker = rospy.Subscriber('/cf1/pose', PoseStamped, callback)
 
 tf_buf = tf2_ros.Buffer() 
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 broadcaster = tf2_ros.TransformBroadcaster()
-
-
+sub_marker = rospy.Subscriber('/cf1/pose', PoseStamped, callback)
 
 if __name__ == "__main__":
     rospy.spin()
