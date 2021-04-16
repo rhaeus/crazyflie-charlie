@@ -78,7 +78,7 @@ def plan_path(req):
         (p.pose.orientation.x,
             p.pose.orientation.y,
             p.pose.orientation.z,
-            p.pose.orientation.w) = quaternion_from_euler(0, 0, 0)
+            p.pose.orientation.w) = quaternion_from_euler(0, 0, yaw)
         # p.pose.orientation.x = 0
         # p.pose.orientation.y = 0
         # p.pose.orientation.z = 0

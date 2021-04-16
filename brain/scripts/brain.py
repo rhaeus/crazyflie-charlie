@@ -188,9 +188,10 @@ class Brain:
                     print("liftoff")
 
             if state == 5: #wait for liftoff
-                # self.current_waypoint.header.stamp = rospy.Time.now()
                 self.publish_pos_cmd(self.current_waypoint)
                 if abs(self.drone_pose_map.pose.position.z - 0.4) < 0.05:
+                    safe_zone = False
+                    self.pub_safe_zone.publish(safe_zone)
                     state =  10
                     print("startup done, go to state 10")
 
@@ -295,8 +296,8 @@ class Brain:
                 safe_count -= 1
                 if safe_count <= 0:
                     self.pub_safe_zone.publish(False)
-                    state = 60
-                    print("waiting done, go to state 60")
+                    state = 20
+                    print("waiting done, go to state 20")
 
             if state == 60: # spin at final waypoint
                 _, _, last_yaw = euler_from_quaternion((self.drone_pose_map.pose.orientation.x, 
@@ -304,30 +305,71 @@ class Brain:
                                                                 self.drone_pose_map.pose.orientation.z, 
                                                                 self.drone_pose_map.pose.orientation.w))
                 total_angle = 0
-                hover_goal = self.drone_pose_map
+                self.current_waypoint = self.drone_pose_map
+                self.current_waypoint_index = 0
+
+                self.drone_mode = 0 # position control
+
+                # self.publish_pos_cmd(self.current_waypoint)
                 state = 65
                 print("spinning at final waypoint..")
             
             if state == 65:
-                self.drone_mode = 1 # velocity control
-                self.publish_vel_cmd(hover_goal, 0, 0, 50)
-                _, _, current_yaw = euler_from_quaternion((self.drone_pose_map.pose.orientation.x, 
+                self.publish_pos_cmd(self.current_waypoint)
+
+                distance_to_goal, yaw_dist = self.check_distance_to_goal(self.drone_pose_map, self.current_waypoint)
+                # print("distance, yaw_dist: ", distance_to_goal, yaw_dist)
+
+                if distance_to_goal < 0.15 and yaw_dist < 5:
+                    _, _, current_yaw = euler_from_quaternion((self.drone_pose_map.pose.orientation.x, 
                                                                 self.drone_pose_map.pose.orientation.y, 
                                                                 self.drone_pose_map.pose.orientation.z, 
                                                                 self.drone_pose_map.pose.orientation.w))
-                delta = math.atan2(math.sin(current_yaw-last_yaw), math.cos(current_yaw-last_yaw))
-                delta = math.degrees(delta)
-                # print("last yaw, current yaw, delta: ", math.degrees(last_yaw), math.degrees(current_yaw), delta)
-                total_angle += delta
-                # print("total_angle: ", total_angle)
-                last_yaw = current_yaw
 
-                if abs(total_angle) >= 360:
-                    print("spinning at waypoint done, go to state 20")
-                    self.drone_mode = 0
-                    self.current_waypoint = self.drone_pose_map
-                    self.current_waypoint_index = 0
+                    delta = math.atan2(math.sin(current_yaw-last_yaw), math.cos(current_yaw-last_yaw))
+                    delta = math.degrees(delta)
+                    # print("last yaw, current yaw, delta: ", math.degrees(last_yaw), math.degrees(current_yaw), delta)
+                    total_angle += delta
+                    # print("total_angle: ", total_angle)
+                    last_yaw = current_yaw
+
+                    if abs(total_angle) >= 360:
+                        print("total angle: ", total_angle)
+                        print("spinning at waypoint done, go to state 70")
+                        self.current_waypoint = self.drone_pose_map
+                        self.current_waypoint_index = 0
+                        state = 70
+                    else:
+                        angle_to_go = 360 - total_angle
+                        if angle_to_go > 20:
+                            angle_to_go = 20
+                        new_yaw = current_yaw + math.radians(angle_to_go);
+                        if new_yaw > math.pi:
+                            new_yaw -= math.pi * 2.0
+                        if new_yaw < -math.pi:
+                            new_yaw += math.pi * 2.0
+
+                        (self.current_waypoint.pose.orientation.x, 
+                        self.current_waypoint.pose.orientation.y,
+                        self.current_waypoint.pose.orientation.z,
+                        self.current_waypoint.pose.orientation.w) = quaternion_from_euler(0, 0, new_yaw)
+
+
+            if state == 70: # wait in safe spot
+                # loop runs with 10hz = 10times/s -> one run takes 1/10s
+                # we want to wait 3s in safe zone
+                # therefore safe_count must be 30
+                safe_count = 30
+                self.pub_safe_zone.publish(True)
+                state = 75
+                print("waiting in safe zone...")
+            
+            if state == 75:
+                safe_count -= 1
+                if safe_count <= 0:
+                    self.pub_safe_zone.publish(False)
                     state = 20
+                    print("waiting done, go to state 20")
 
             if state == 100: # intruder found
                 print("=================================")
