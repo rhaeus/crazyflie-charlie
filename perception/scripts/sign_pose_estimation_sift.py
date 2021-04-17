@@ -12,13 +12,15 @@ from cv_bridge import CvBridge, CvBridgeError
 import os
 import json
 import math
+import tf2_ros 
+import tf2_geometry_msgs
 
 import convert_msgs
 
-from cf_msgs.msg import DetectionResult, SignMarker, SignMarkerArray
+from cf_msgs.msg import DetectionResult, SignMarker, SignMarkerArray, SafeZone
 
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 
 class SignPoseEstimation:
 
@@ -26,11 +28,19 @@ class SignPoseEstimation:
         self.reference_sign_path = rospy.get_param('~reference_sign_path')
 
         self.result_sub = rospy.Subscriber("/cf1/sign_detection/result", DetectionResult, self.callback, queue_size = 1, buff_size=2**24)
-        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", SignMarkerArray, queue_size = 10)
+        self.pose_pub = rospy.Publisher("/cf1/sign_detection/pose_estimation", SignMarkerArray, queue_size = 1)
 
-        self.image_pub = rospy.Publisher("/cf1/sign_detection/feature_matches", Image, queue_size = 10)
+        self.image_pub = rospy.Publisher("/cf1/sign_detection/feature_matches", Image, queue_size = 1)
 
         self.camera_info_sub = rospy.Subscriber("/cf1/camera/camera_info", CameraInfo, self.camera_info_callback)
+
+        # self.safe_zone_sub = rospy.Subscriber("/cf1/safe_zone", SafeZone, self.safe_zone_callback)
+        # self.is_safe_zone = False
+        # self.safe_zone_object_pose = PoseStamped()
+        # self.safe_zone_drone_target_pose = PoseStamped()
+
+        self.tf_buf   = tf2_ros.Buffer()
+        self.tf_lstn  = tf2_ros.TransformListener(self.tf_buf)
 
         self.distortion = []
         self.camera_matrix = []
@@ -39,6 +49,12 @@ class SignPoseEstimation:
 
         # calculate features for all signs
         self.load_reference_features()
+
+    # def safe_zone_callback(self, msg):
+    #     self.is_safe_zone = msg.is_safe_zone.data
+    #     if self.is_safe_zone:
+    #         self.safe_zone_object_pose = msg.object_pose
+    #         self.safe_zone_drone_target_pose = msg.drone_target_pose
 
     def camera_info_callback(self, data):
         self.distortion = data.D
@@ -140,6 +156,9 @@ class SignPoseEstimation:
 
 
     def callback(self, detection_result):
+        # if not self.is_safe_zone:
+        #     return
+
         image = detection_result.image
 
         # Convert the image from ROS to OpenCV format
@@ -191,7 +210,7 @@ class SignPoseEstimation:
             image_keypoints = []
 
             # get 4 best matches
-            for i in range(4):
+            for i in range(10):
                 match = matches[i]
                 object_keypoints.append(ref["kp"][match.trainIdx])
                 image_keypoints.append(kp[match.queryIdx])
@@ -199,10 +218,34 @@ class SignPoseEstimation:
 
             image_points = self.keypoints_to_image_points(image_keypoints)
             object_points = self.keypoints_to_object_points(object_keypoints, ref)
+# "position": [1.24,  0.1, 0.4], "orientation": [0.0, -90.0, 0.0]}},
+            initial_guess = PoseStamped()
+            initial_guess.header = image.header
+            initial_guess.header.frame_id = 'map'
+
+            initial_guess.pose.position.x = 1.24
+            initial_guess.pose.position.y = 0.1
+            initial_guess.pose.position.z = 0.4
+            (initial_guess.pose.orientation.x,
+            initial_guess.pose.orientation.y,
+            initial_guess.pose.orientation.z,
+            initial_guess.pose.orientation.w) = quaternion_from_euler(math.radians(0),
+                                                            math.radians(-90),
+                                                            math.radians(0))
+
+            if not self.tf_buf.can_transform('cf1/camera_link', initial_guess.header.frame_id, initial_guess.header.stamp, rospy.Duration(1)):
+                rospy.logwarn('[display_sign_pose_estimation] initial_guess No transform from %s to cf1/camera_link', initial_guess.header.frame_id)
+                return
+
+            initial_guess_camera = self.tf_buf.transform(initial_guess, 'cf1/camera_link')
+
+            guess_t = np.array([initial_guess_camera.pose.position.x, initial_guess_camera.pose.position.y, initial_guess_camera.pose.position.z])
+            (roll, pitch, yaw) = euler_from_quaternion((initial_guess_camera.pose.orientation.x, initial_guess_camera.pose.orientation.y, initial_guess_camera.pose.orientation.z, initial_guess_camera.pose.orientation.w))
+            guess_r = np.array([roll, pitch, yaw])
 
             # use cv2.solvePnP for pose estimation
             (_, rotation_vector, translation_vector) = cv.solvePnP(
-                object_points[:4], image_points[:4], self.camera_matrix, self.distortion)
+                object_points[:10], image_points[:10], self.camera_matrix, self.distortion, guess_r, guess_t, True, cv.SOLVEPNP_ITERATIVE)
 
             # create pose
             p = Pose()
