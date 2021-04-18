@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-      <arg name="map_name" default="ramona"/>
+      <arg name="map_name" default="ramona1"/>
 
       <node 
             name="displaymapmarkers" pkg="drone_launch" type="displaymapmarkers.py" output="screen"

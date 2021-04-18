@@ -11,7 +11,8 @@
     "markers": [
       {"id": 1, "pose": {"position": [0.28, 0.0, 0.4], "orientation": [0, -90.0, 0.0]}},
       {"id": 2, "pose": {"position": [2.2, 0.89, 0.4],  "orientation": [0.0, -90.0, 90.0]}},
-      {"id": 3, "pose": {"position": [0.0, 0.8, 0.4],  "orientation": [-90.0, -90.0, 0.0]}}
+      {"id": 3, "pose": {"position": [0.99, 0.5, 0.165],  "orientation": [90.0, -90.0, 0.0]}},
+      {"id": 4, "pose": {"position": [1.19, 1.6, 0.4],  "orientation": [90.0, -90.0, 0.0]}}
     ],
   
     "gates": [
@@ -40,10 +41,10 @@
   
     "roadsigns": [
       {"sign": "stop", "pose": {"position": [0.45,  1.74, 0.4], "orientation": [180.0, -90.0, 0.0]}},
-      {"sign": "no_bicycle", "pose": {"position": [1.24,  0.1, 0.4], "orientation": [0.0, -90.0, 0.0]}},
+      {"sign": "no_bicycle", "pose": {"position": [1.345,  0.1, 0.495], "orientation": [0.0, -90.0, 0.0]}},
       {"sign": "residential", "pose": {"position": [1.84,  0.1, 0.4], "orientation": [0.0, -90.0, 0.0]}},
       {"sign": "roundabout", "pose": {"position": [1.2,  0.1, 0.685], "orientation": [0.0, -90.0, 0.0]}},
       {"sign": "dangerous_left", "pose": {"position": [0.65,  0.1, 0.275], "orientation": [0.0, -90.0, 0.0]}},
-      {"sign": "narrows_from_left", "pose": {"position": [0.65,  0.1, 0.515], "orientation": [0.0, -90.0, 0.0]}}
+      {"sign": "narrows_from_left", "pose": {"position": [0.745,  0.1, 0.6], "orientation": [0.0, -90.0, 0.0]}}
     ]
   }

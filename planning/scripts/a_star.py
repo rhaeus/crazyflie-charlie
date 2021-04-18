@@ -13,12 +13,17 @@ class AStar:
 
     def __init__(self, grid_map):
         self.grid_map = grid_map
-        self.max_iterations = 5000
+        self.max_iterations = 100000
 
     
     def plan(self, start_index, end_index):    
         start_node = Node(start_index)
         end_node = Node(end_index)
+
+        # if not self.check_location(start_node) or not self.check_location(end_node):
+        if not self.check_location(end_node):
+            print("[A*] end location is not free")
+            return []
 
         open_list = dict()
         closed_list = dict()  
@@ -45,7 +50,7 @@ class AStar:
             # check if we reached target
             # if current_node.position[0] == end_node.position[0] and current_node.position[1] == end_node.position[1]
             if current_node.position == end_node.position:
-                break;
+                break
 
             # expand to neigbors
             neighbor_indices = self.grid_map.get_cell_neighbors(current_node.position)
@@ -105,7 +110,7 @@ class AStar:
                 # check if obstacle on the way
                 blocked = False
                 for x, y in ray:
-                    if self.grid_map.get_value((x,y)) != self.grid_map.free_space:
+                    if self.grid_map.get_value((x,y)) != self.grid_map.free_space and self.grid_map.get_value((x,y)) != self.grid_map.unknown_space:
                         blocked = True
                         break
 
@@ -123,7 +128,8 @@ class AStar:
 
 
     def check_location(self, node):
-        return self.grid_map.is_index_in_range(node.position) and self.grid_map.get_value(node.position) == self.grid_map.free_space
+        return self.grid_map.is_index_in_range(node.position) and \
+            (self.grid_map.get_value(node.position) == self.grid_map.free_space or self.grid_map.get_value(node.position) == self.grid_map.unknown_space)
 
 
     def heuristic(self, n1, n2):
