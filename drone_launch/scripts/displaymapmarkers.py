@@ -9,10 +9,16 @@ import tf2_ros
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import TransformStamped, Vector3
 
+global unique_id 
+unique_id = 0
+
 def transform_from_marker(m):
+    global unique_id
+
     t = TransformStamped()
     t.header.frame_id = 'map'
-    t.child_frame_id = 'aruco/marker' + str(m['id'])
+    t.child_frame_id = 'aruco/marker' + str(unique_id) + '_id' + str(m['id'])
+    unique_id += 1
     t.transform.translation = Vector3(*m['pose']['position'])
     roll, pitch, yaw = m['pose']['orientation']
     (t.transform.rotation.x,
