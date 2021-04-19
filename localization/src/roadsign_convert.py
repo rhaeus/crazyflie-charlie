@@ -10,34 +10,34 @@ if id == 1:
     signName = "airport"
 
 if id == 2: 
-    signName = "dangerous left"
+    signName = "dangerous_left"
 
 if id == 3: 
-    signName = "dangerous right"
+    signName = "dangerous_right"
 
 if id == 4: 
-    signName = "follow left"
+    signName = "follow_left"
 
 if id == 5: 
-    signName = "follow right"
+    signName = "follow_right"
 
 if id == 6: 
     signName = "junction"
 
 if id == 7: 
-    signName = "no heavy truck"
+    signName = "no_heavy_truck"
 
 if id == 8: 
-    signName = "no parking"
+    signName = "no_parking"
 
 if id == 9: 
-    signName = "no stopping and parking"
+    signName = "no_stopping_and_parking"
 
 if id == 10: 
     signName = "residential"
 
 if id == 11: 
-    signName = "narrows from left"
+    signName = "narrows_from_left"
 
 if id == 12: 
     signName = "narrows from right"
