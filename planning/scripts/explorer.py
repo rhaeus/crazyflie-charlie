@@ -152,12 +152,18 @@ def get_safe_spots():
     with open(map_file_path, 'rb') as f:
         world = json.load(f)
 
-    objects = []
+    mark = []
+    sign = []
     for m in world['markers']:
-        objects.append(m)
+        if m["id"]==1:
+            continue
+        mark.append(m)
     for s in world['roadsigns']:
-        objects.append(s)
-    
+        sign.append(s)
+
+    objects = [item for sublist in zip(mark,sign) for item in sublist]
+    objects.reverse()
+
     for o in objects:
         translation = (o['pose']['position'][0], o['pose']['position'][1], o['pose']['position'][2])
         roll, pitch, yaw = o['pose']['orientation']

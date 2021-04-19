@@ -5,5 +5,5 @@
       <include file="$(find perception)/launch/display_detection_result.launch" />
 
       <include file="$(find perception)/launch/sign_pose_estimation.launch" />
-      <include file="$(find perception)/launch/display_sign_pose_estimation.launch" />
+      <!-- <include file="$(find perception)/launch/display_sign_pose_estimation.launch" /> -->
 </launch>

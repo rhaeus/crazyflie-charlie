@@ -11,6 +11,7 @@ intruder_detected = False
 global intruder_id
 
 def callback(detection_result):
+    global intruder_detected
     for label in detection_result.labels:
         if label.category_id == intruder_id:
             intruder_detected = True

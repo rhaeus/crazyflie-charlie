@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="intruder_id" default="0"/>
+    <arg name="intruder_id" default="10"/>
 
     <node pkg="brain" type="brain.py"    name="statemachine"    output="screen"></node> 
 

@@ -25,11 +25,16 @@ def safezone_callback(msg):
     global safezone, cnt
     safezone = msg.data
     cnt = 0
+    # b = Bool()
+    # b.data = False
+    # pub.publish(b)
 
 def marker_callback(msg):
     global marker, safezone
     if safezone:
         for marker in msg.markers:
+            #print("Localizing with Aruco")
+
             broadcast_odom(marker)
             trans_to_map(marker)
 
@@ -37,6 +42,8 @@ def sign_callback(msg):
     global road_sign, safezone
     if safezone:
         for sign in msg.markers:
+            #print("Localizing with road sign")
+
             sign.id = signIdConverter(sign.id)
             broadcast_odom(sign)
             trans_to_map_sign(sign)
@@ -148,7 +155,7 @@ def data_assoc2(translation_static, rotation_static, translation, rotation):
         temp_translation = translation_static[idx]/float(np.linalg.norm(translation_static[idx]))
         temp_pose = np.concatenate((temp_translation, rotation_static[idx]))/float(np.sqrt(2))
         #print(temp_pose, pose)
-        print(translation_static[idx])
+        #print(translation_static[idx])
         #print('--------------------------------------')
         #bc = np.sqrt(np.dot(pose, temp_pose))
         #d = np.sqrt(1 - bc)
@@ -156,8 +163,8 @@ def data_assoc2(translation_static, rotation_static, translation, rotation):
         #print('distance:', d)
         #print('---------')
         d = np.linalg.norm(pose-temp_pose)
-        print('distance:', d)
-        print('---------')
+        #print('distance:', d)
+        #print('---------')
         if d <= min:
             min = d
             min_idx = idx
@@ -166,7 +173,7 @@ def data_assoc2(translation_static, rotation_static, translation, rotation):
 
 
 def broadcast_odom(m):
-    global t, old, init, filter, cnt 
+    global t, old, init, filter, cnt
 
     marker_pose = PoseStamped()
     marker_pose.header = m.header
@@ -212,7 +219,7 @@ def broadcast_odom(m):
         marker_in_map_position = np.array([marker_in_map.pose.position.x, marker_in_map.pose.position.y, marker_in_map.pose.position.z])
         marker_in_map_orientation = np.array([marker_in_map.pose.orientation.x, marker_in_map.pose.orientation.y, marker_in_map.pose.orientation.z, marker_in_map.pose.orientation.w])
         min_idx = data_assoc2(map_translation_markers, map_rotation_markers, marker_in_map_position, marker_in_map_orientation)
-        print('min index:', map_translation_markers[min_idx])
+        #print('min index:', map_translation_markers[min_idx])
         #min_idx = data_assoc(map_translation_markers, marker_in_map.pose.position)
         # Continue with the min index 
         map_translation_marker = map_translation_markers[min_idx]
@@ -255,7 +262,8 @@ def broadcast_odom(m):
     # Flag that tells us when we are localized
     msg = Bool()
     if cnt > 10 and tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
-        msg.data = True    
+        msg.data = True 
+
     else:
         msg.data = False
         cnt += 1

@@ -273,10 +273,10 @@ class SignPoseEstimation:
         ret,b_mask = cv.threshold(gray,127,255, 0)
         output_n = cv.bitwise_and(output, output,mask = b_mask)
 
-        print('bbs', bbs)
+        #print('bbs', bbs)
         masks = []
         for bb in bbs:
-            print(bb['category'])
+            #print(bb['category'])
             # match features with reference image
             cat = bb["category"]
             ref = self.ref_dict[cat]
@@ -455,7 +455,7 @@ class SignPoseEstimation:
                 p = Pose()
 
                 p.position.x = translation_vector[0]
-                print(translation_vector[0])
+                #print(translation_vector[0])
                 p.position.y = translation_vector[1]
                 p.position.z = translation_vector[2]
 
