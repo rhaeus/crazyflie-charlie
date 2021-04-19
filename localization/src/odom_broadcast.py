@@ -21,8 +21,9 @@ from cf_msgs.msg import SignMarkerArray
 
 
 def safezone_callback(msg):
-    global safezone 
+    global safezone, cnt
     safezone = msg.data
+    cnt = 0
 
 def marker_callback(msg):
     global marker, safezone
@@ -35,6 +36,7 @@ def sign_callback(msg):
     global road_sign, safezone
     if safezone:
         for sign in msg.markers:
+            sign.id = signIdConverter(sign.id)
             broadcast_odom(sign)
             trans_to_map_sign(sign)
 
@@ -163,7 +165,7 @@ def data_assoc2(translation_static, rotation_static, translation, rotation):
 
 
 def broadcast_odom(m):
-    global t, old, init, filter
+    global t, old, init, filter, cnt 
 
     marker_pose = PoseStamped()
     marker_pose.header = m.header
@@ -251,19 +253,20 @@ def broadcast_odom(m):
     
     # Flag that tells us when we are localized
     msg = Bool()
-    if tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
+    if cnt > 10 and tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
         msg.data = True    
     else:
         msg.data = False
+        cnt += 1
     pub.publish(msg)
 
 
 
 rospy.init_node('marker_detection')
-global broadcaster, pub, init, safezone
+global broadcaster, pub, init, safezone, cnt
 
 init = True
-
+cnt = 0 
 marker = None
 road_sign = None
 safezone = True   
