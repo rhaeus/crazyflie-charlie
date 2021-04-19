@@ -177,8 +177,8 @@ class Brain:
 
             if state == 0: # initial localize
                 if self.is_localized:
-                    state = 20
-                    print("localized, go to state 20")
+                    state = 10
+                    print("localized, go to state 10")
                 else:
                     print("localizing..")
                     # hover_goal = self.drone_pose_map
@@ -194,13 +194,31 @@ class Brain:
                 # self.publish_pos_cmd(self.current_waypoint)
 
                 if self.is_localized:
-                    state = 20
+                    state = 10
                     # self.drone_mode = 0
                     # self.current_waypoint = self.drone_pose_map
                     # self.current_waypoint_index = 0
                     safe_zone = False
                     self.pub_safe_zone.publish(False)
-                    print("localized, go to state 20")
+                    print("localized, go to state 10")
+
+            if state == 10: # startup
+                # liftoff
+                drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
+                start = self.trans2Map(drone_pose)
+                if start is not None:
+                    start.pose.position.z = 0.4
+                    self.current_waypoint_index = 0
+                    self.current_waypoint = start
+                    self.publish_pos_cmd(self.current_waypoint)
+                    state = 15
+                    print("liftoff")
+
+            if state == 15: #wait for liftoff
+                self.publish_pos_cmd(self.current_waypoint)
+                if abs(self.drone_pose_map.pose.position.z - 0.4) < 0.05:
+                    state =  20
+                    print("startup done, go to state 20")
 
             if state == 20: # get next goal for exploration
                 result = self.explorer_request_goal()
