@@ -16,10 +16,14 @@ from geometry_msgs.msg import TransformStamped, PoseStamped, Transform, Quaterni
 from std_msgs.msg import Bool
 import tf.transformations 
 
+from cf_msgs.msg import SignMarkerArray
+
+
 
 def safezone_callback(msg):
-    global safezone 
+    global safezone, cnt
     safezone = msg.data
+    cnt = 0
 
 def marker_callback(msg):
     global marker, safezone
@@ -27,6 +31,36 @@ def marker_callback(msg):
         for marker in msg.markers:
             broadcast_odom(marker)
             trans_to_map(marker)
+
+def sign_callback(msg):
+    global road_sign, safezone
+    if safezone:
+        for sign in msg.markers:
+            sign.id = signIdConverter(sign.id)
+            broadcast_odom(sign)
+            trans_to_map_sign(sign)
+
+
+def trans_to_map_sign(m):
+    road_sign = PoseStamped()
+    road_sign.header = m.header
+    road_sign.pose = m.pose.pose 
+
+    # Check that there is a sufficient TF tree
+    if not tf_buf.can_transform('map', road_sign.header.frame_id, road_sign.header.stamp, timeout = rospy.Duration(0.1)):
+        return 
+
+    road_sign = tf_buf.transform(road_sign, 'map')
+
+    trans = TransformStamped()
+    trans.header.stamp = m.header.stamp 
+    trans.header.frame_id = 'map'
+    trans.child_frame_id = 'sign/detected/' + str(m.id)
+    trans.transform = Transform(translation=road_sign.pose.position, rotation=road_sign.pose.orientation)
+
+    broadcaster.sendTransform(trans)
+
+
 
 # Broadcast a transform between map and a detected aruco marker
 def trans_to_map(m):
@@ -50,12 +84,19 @@ def trans_to_map(m):
 
 # loop through the markers in the map and if the ID is correct, add the coordinates to a list.
 def read_static_marker(m):
-    markers = world['markers']
+    if (len(str(m.id))) > 2:
+        strr = 'roadsigns'
+        identification = 'sign'
+    else:
+        strr = 'markers'
+        identification = 'id'
+
+    markers = world[strr]
     Found = False #error check  
     trans = []
     rot = []
     for marker in markers:
-        if marker['id'] == m.id:
+        if marker[identification] == m.id:
             #arr = np.array([marker['pose']['position'][0], marker['pose']['position'][1], marker['pose']['position'][2]])
             #print(np.linalg.norm(arr))
             #trans.append(marker['pose']['position'])
@@ -124,7 +165,7 @@ def data_assoc2(translation_static, rotation_static, translation, rotation):
 
 
 def broadcast_odom(m):
-    global t, old, init, filter
+    global t, old, init, filter, cnt 
 
     marker_pose = PoseStamped()
     marker_pose.header = m.header
@@ -212,20 +253,22 @@ def broadcast_odom(m):
     
     # Flag that tells us when we are localized
     msg = Bool()
-    if tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
+    if cnt > 10 and tf_buf.can_transform('cf1/odom','map',m.header.stamp, timeout=rospy.Duration(0.1)):
         msg.data = True    
     else:
         msg.data = False
+        cnt += 1
     pub.publish(msg)
 
 
 
 rospy.init_node('marker_detection')
-global broadcaster, pub, init, safezone
+global broadcaster, pub, init, safezone, cnt
 
 init = True
-
+cnt = 0 
 marker = None
+road_sign = None
 safezone = True   
 t = None
 tf_buf = tf2_ros.Buffer() 
@@ -234,6 +277,7 @@ broadcaster = tf2_ros.TransformBroadcaster()
 pub = rospy.Publisher('/is_localized', Bool, queue_size=10)
 sub_safezone = rospy.Subscriber('/cf1/safe_zone', Bool, safezone_callback)
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+sub_roadsign = rospy.Subscriber("/cf1/sign_detection/pose_estimation", SignMarkerArray, sign_callback)
 
 def main(argv=sys.argv):
     global world

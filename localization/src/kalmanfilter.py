@@ -94,8 +94,6 @@ class Kalman:
 
         return msg
 
-
-
 def main():
     A = np.random.rand(3,3)
     B = np.random.rand(3,1)
@@ -104,9 +102,6 @@ def main():
     C = np.dot(A,B)
     C2 = np.matmul(A,B)
     C3 = A*B
-
-
- 
 
 
 if __name__ == "__main__":
