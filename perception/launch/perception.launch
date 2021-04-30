@@ -6,9 +6,14 @@
       <include file="$(find perception)/launch/detect_and_classify_signs.launch" />
       <include file="$(find perception)/launch/display_detection_result.launch" />
 
+<<<<<<< HEAD
       <include file="$(find perception)/launch/sign_pose_estimation.launch">
             <arg name="map_name" value="$(arg map_name)"/>
       </include>
 
       <include file="$(find perception)/launch/display_sign_pose_estimation.launch"/>
+=======
+      <include file="$(find perception)/launch/sign_pose_estimation.launch" />
+      <!-- <include file="$(find perception)/launch/display_sign_pose_estimation.launch" /> -->
+>>>>>>> c381db4276baf84527452d161e823bd9ca9b0db5
 </launch>

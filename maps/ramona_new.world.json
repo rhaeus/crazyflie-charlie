@@ -9,11 +9,11 @@
     "roadsign_size": [0.20, 0.20],
   
     "markers": [
-      {"id": 1, "pose": {"position": [1.62, 0.05, 0.4], "orientation": [0, -90.0, 0.0]}},
+      {"id": 1, "pose": {"position": [1.62, 0.05, 0.12], "orientation": [0, -90.0, 0.0]}},
       {"id": 4, "pose": {"position": [2.2, 0.89, 0.4],  "orientation": [0.0, -90.0, 90.0]}},
       {"id": 4, "pose": {"position": [0.0, 0.8, 0.4],  "orientation": [-90.0, -90.0, 0.0]}},
       {"id": 4, "pose": {"position": [0.52, 0.0, 0.4],  "orientation": [0.0, -90.0, 0.0]}}
-    ],
+        ],
   
     "gates": [
 
@@ -40,7 +40,7 @@
     ],
   
     "roadsigns": [
-      {"sign": "stop", "pose": {"position": [0.45,  1.74, 0.4], "orientation": [180.0, -90.0, 0.0]}},
+      {"sign": "dangerous_left", "pose": {"position": [0.45,  1.74, 0.4], "orientation": [180.0, -90.0, 0.0]}},
       {"sign": "no_bicycle", "pose": {"position": [1.24,  0.0, 0.4], "orientation": [0.0, -90.0, 0.0]}},
       {"sign": "roundabout", "pose": {"position": [1.18,  1.49, 0.4], "orientation": [180.0, -90.0, 0.0]}}
     ]

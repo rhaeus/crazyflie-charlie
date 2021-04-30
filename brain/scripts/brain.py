@@ -39,7 +39,7 @@ class Brain:
         self.explorer_explore_point = rospy.ServiceProxy('explorer_explore_point', ExplorePoint)
         rospy.wait_for_service('explorer_explore_point')
 
-        self.sub_flag = rospy.Subscriber("is_localized", Bool, self.localize_flag_callback)
+        self.sub_flag = rospy.Subscriber("/is_localized", Bool, self.localize_flag_callback)
         self.sub_pose = rospy.Subscriber("/cf1/pose", PoseStamped, self.pose_callback)
         self.sub_intruder = rospy.Subscriber("/cf1/intruder_detection_result", Bool, self.intruder_callback)
 
@@ -177,8 +177,8 @@ class Brain:
 
             if state == 0: # initial localize
                 if self.is_localized:
-                    state = 20
-                    print("localized, go to state 20")
+                    state = 10
+                    print("localized, go to state 10")
                 else:
                     print("localizing..")
                     # hover_goal = self.drone_pose_map
@@ -186,6 +186,7 @@ class Brain:
                     # self.current_waypoint_index = 0
                     safe_zone = True # start position is safe zone becase we start where we can see a marker
                     self.pub_safe_zone.publish(safe_zone)
+                    print("SAFE ZONE == TRUE")
                     state = 5
             
             if state == 5: # wait for spin or localize
@@ -194,13 +195,33 @@ class Brain:
                 # self.publish_pos_cmd(self.current_waypoint)
 
                 if self.is_localized:
-                    state = 20
+                    state = 10
                     # self.drone_mode = 0
                     # self.current_waypoint = self.drone_pose_map
                     # self.current_waypoint_index = 0
                     safe_zone = False
                     self.pub_safe_zone.publish(False)
-                    print("localized, go to state 20")
+                    print("SAFE ZONE == FALSE")
+                    print("localized, go to state 10")
+                    drone_pose = rospy.wait_for_message('/cf1/pose', PoseStamped)
+
+
+            if state == 10: # startup
+                # liftoff
+                start = self.trans2Map(drone_pose)
+                if start is not None:
+                    start.pose.position.z = 0.4
+                    self.current_waypoint_index = 0
+                    self.current_waypoint = start
+                    self.publish_pos_cmd(self.current_waypoint)
+                    state = 15
+                    print("liftoff")
+
+            if state == 15: #wait for liftoff
+                self.publish_pos_cmd(self.current_waypoint)
+                if abs(self.drone_pose_map.pose.position.z - 0.4) < 0.05:
+                    state =  20
+                    print("startup done, go to state 20")
 
             if state == 20: # get next goal for exploration
                 result = self.explorer_request_goal()
@@ -274,12 +295,22 @@ class Brain:
                 # therefore safe_count must be 30
                 # safe_count = 100000000000000
                 self.pub_safe_zone.publish(True)
-                state = 55
+                print("SAFE ZONE == TRUE")
+                state = 51
+                safe_count = 50
                 print("waiting in safe zone...")
-            
+
+            if state == 51:
+                safe_count -= 1
+                if safe_count <= 0:
+                    state = 55
+                    print("Waiting in safe zone done")
+                    
+
             if state == 55:
                 if self.is_localized:
                     self.pub_safe_zone.publish(False)
+                    print("SAFE ZONE == FALSE")
                     state = 60
                     print("waiting done, go to state 60")
 
@@ -328,7 +359,11 @@ class Brain:
                         print("spinning at waypoint done, go to state 70")
                         self.current_waypoint = self.drone_pose_map
                         self.current_waypoint_index = 0
-                        state = 70
+
+                        if safe_zone:
+                            state = 70
+                        else:
+                            state = 20
                     else:
                         angle_to_go = 360 - total_angle
                         if angle_to_go > 20:
@@ -351,9 +386,16 @@ class Brain:
                 # therefore safe_count must be 30
                 # safe_count = 100000000000000
                 self.pub_safe_zone.publish(True)
-                state = 75
+                state = 71
+                safe_count = 50
                 print("waiting in safe zone...")
-            
+
+            if state == 71:
+                safe_count -= 1
+                if safe_count <= 0:
+                    state = 75
+                    print("Waiting in safe zone done")
+                
             if state == 75:
                 if self.is_localized:
                     self.pub_safe_zone.publish(False)
