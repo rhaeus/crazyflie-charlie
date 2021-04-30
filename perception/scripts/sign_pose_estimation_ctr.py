@@ -544,6 +544,32 @@ class SignPoseEstimation:
                 # except CvBridgeError as e:
                 #     print(e)
 
+            if len(contours)>0 and self.ref_dict[int(bb['category'])]['shape']=='rectangle':
+                cont = np.vstack(ctr for ctr in contours)
+                cv.drawContours(output_n, cont, -1, (0, 255, 0), 3)
+
+                #rectangular fitting
+                x,y,w,h = cv.boundingRect(cont)
+                output_n = cv.rectangle(output_n,(x,y),(x+w,y+h),(0,255,255),2)
+
+                #rectangular
+                if h>20:
+                    top = (x + w/2, y)
+                    bottom = (x + w/2, y + h)
+
+                    right = (x, y + h/2)
+                    left = (x + w, y + h/2)
+                    
+
+                    image_points = np.array([top, right, bottom, left],dtype=np.float64)
+
+                # # Publish the reference image
+                # try:
+                # #   self.image_pub.publish(self.bridge.cv2_to_imgmsg(closing, "passthrough"))
+                #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(self.ref_dict[int(bb['category'])]['image'], "8UC3"))
+                # except CvBridgeError as e:
+                #     print(e)
+
 
             if len(contours)>0 and self.ref_dict[int(bb['category'])]['shape']=='hex':
                 cont = np.vstack(ctr for ctr in contours)

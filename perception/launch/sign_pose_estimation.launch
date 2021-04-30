@@ -1,9 +1,11 @@
 <?xml version="1.0"?>
 
 <launch>
+      <arg name="map_name" default="ramona1"/>
 
-      <node pkg="perception" type="sign_pose_estimation_ctr.py" name="sign_pose_estimation_ctr" output="screen">
-            <param name="reference_sign_path" value="$(find perception)/res/reference_signs"/>
+      <node pkg="perception" type="sign_pose_estimation_ctr.py" name="sign_pose_estimation_ctr" output="screen" args="$(find maps)/$(arg map_name).world.json">
+            <param name="reference_sign_path" value="$(find perception)/res/reference_signs"/> 
+            <param name="annotation_path" value="$(find perception)/dd2419_detector_baseline/dd2419_coco/annotations/training.json"/>   
       </node>
 
 </launch>
