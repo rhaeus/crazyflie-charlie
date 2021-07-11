@@ -5,6 +5,12 @@ itself in a given environment using ARUCO markers and traffic signs. The drone h
 a defined traffic sign. 
 We named our drone "Charlie", hence the project name :) 
 
+Here is a video with a system demo:
+
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=YCbfiAgGdmk
+" target="_blank"><img src="http://img.youtube.com/vi/YCbfiAgGdmk/0.jpg" 
+alt="System demo" width="480" height="360" border="10" /></a>
+
 The system is divided into 4 modules:
 
 * System Control
